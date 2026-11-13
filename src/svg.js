@@ -13,11 +13,6 @@ const COLOR = {
 };
 const ELEMENTS = ['#e2605b', '#8fbf6a', '#e9d27a', '#6aa8e0']; // fire, earth, air, water, repeating from Aries
 const SERIF = "Georgia, 'Times New Roman', serif";
-// U+FE0E asks for the text glyph where a platform would otherwise show an emoji.
-const TEXT_STYLE = '︎';
-const PLANET_GLYPHS = {
-  Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆',
-};
 const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV',
   'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'];
 
@@ -137,6 +132,39 @@ function hexagramSvg(number) {
     + `<g transform="translate(28 18)">${hexagramGroup(linesOf(number))}</g>`);
 }
 
+// Planet and sign glyphs as stroked paths in a 24 by 24 box centred on the
+// origin. Font glyphs for these differ from one machine to the next, are
+// missing from some fonts, and are swapped for colour emoji by others.
+const dot = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor" stroke="none"/>`;
+const GLYPHS = {
+  Sun: `<circle r="8.5"/>${dot(0, 0, 1.8)}`,
+  Moon: '<path d="M-4 -9.5A9.5 9.5 0 1 1 -4 9.5A7.5 7.5 0 1 0 -4 -9.5Z"/>',
+  Mercury: '<circle cy="-2" r="4.5"/><path d="M-4.5 -11A4.5 4.5 0 0 0 4.5 -11M0 2.5V11M-3.5 7H3.5"/>',
+  Venus: '<circle cy="-4.5" r="5.5"/><path d="M0 1V11M-4 6.5H4"/>',
+  Mars: '<circle cx="-2.5" cy="2.5" r="6"/><path d="M1.8 -1.8L9.5 -9.5M4 -9.5H9.5V-4"/>',
+  Jupiter: '<path d="M-8 -6C-8 -11 -1 -11 -1 -5C-1 -1 -5 2 -9 3H9M4.5 -9V10.5"/>',
+  Saturn: '<path d="M-4 -10.5V8M-8 -6H1M-4 -1C-1 -5 5 -4 5 1C5 5 2 6 3 9C3.5 10.5 5.5 10.5 7 9"/>',
+  Uranus: '<path d="M-7.5 -10.5V0M7.5 -10.5V0M-7.5 -5H7.5M0 -10.5V3.5"/><circle cy="7.2" r="3.5"/>',
+  Neptune: '<path d="M-7.5 -10C-7.5 1 7.5 1 7.5 -10M0 -10.5V11M-4.5 6H4.5"/>',
+  Aries: '<path d="M0 10.5V-3C0 -12 -10 -10 -8.5 -3.5M0 -3C0 -12 10 -10 8.5 -3.5"/>',
+  Taurus: '<circle cy="4" r="6"/><path d="M-8.5 -10.5C-6 -2 6 -2 8.5 -10.5"/>',
+  Gemini: '<path d="M-8 -10C-3 -7.5 3 -7.5 8 -10M-8 10C-3 7.5 3 7.5 8 10M-3.5 -8V8M3.5 -8V8"/>',
+  Cancer: '<circle cx="-5.5" cy="-3" r="3"/><circle cx="5.5" cy="3" r="3"/><path d="M-8.5 -3C-8.5 -10 5 -10.5 9.5 -6M8.5 3C8.5 10 -5 10.5 -9.5 6"/>',
+  Leo: '<circle cx="-5.5" cy="3.5" r="3.5"/><path d="M-2 3.5C-2 -2 -6.5 -3.5 -6.5 -7C-6.5 -11.5 3.5 -11.5 3.5 -6C3.5 -1 0.5 4 3 8C4.5 10.5 8 10 8.5 7"/>',
+  Virgo: '<path d="M-9.5 -8.5V8M-9.5 -5C-9.5 -9.5 -4.5 -9.5 -4.5 -5V8M-4.5 -5C-4.5 -9.5 0.5 -9.5 0.5 -5V8M0.5 -2C5 -8.5 10.5 -2 6 4C4 6.5 0.5 9 -2 11"/>',
+  Libra: '<path d="M-9.5 9.5H9.5M-9.5 4H-4C-7.5 -1 -4.5 -8.5 0 -8.5C4.5 -8.5 7.5 -1 4 4H9.5"/>',
+  Scorpio: '<path d="M-9.5 -8.5V8M-9.5 -5C-9.5 -9.5 -4.5 -9.5 -4.5 -5V8M-4.5 -5C-4.5 -9.5 0.5 -9.5 0.5 -5V5.5C0.5 9 4 10 8.5 7M5.5 4.5L9 7L6 10.5"/>',
+  Sagittarius: '<path d="M-9 9L9 -9M2.5 -9H9V-2.5M-6.5 -0.5L0.5 6.5"/>',
+  Capricorn: '<path d="M-9.5 -8.5L-5 4L-1 -8.5V2C-1 9.5 8 10.5 8 5C8 0.5 1.5 0.5 0.5 6C-0.5 9.5 -4 11 -6.5 10"/>',
+  Aquarius: '<path d="M-10 -2.5L-6 -6.5L-2 -2.5L2 -6.5L6 -2.5L10 -6.5M-10 6.5L-6 2.5L-2 6.5L2 2.5L6 6.5L10 2.5"/>',
+  Pisces: '<path d="M-8 -10.5C-3 -4 -3 4 -8 10.5M8 -10.5C3 -4 3 4 8 10.5M-6.5 0H6.5"/>',
+};
+
+function glyph(name, x, y, size, color, weight = 2) {
+  return `<g transform="translate(${n(x)} ${n(y)}) scale(${n(size / 24)})" fill="none" stroke="${color}" color="${color}" `
+    + `stroke-width="${weight}" stroke-linecap="round" stroke-linejoin="round">${GLYPHS[name]}</g>`;
+}
+
 // Keep labels from overlapping: nudge neighbours apart until each pair is at least `gap` degrees apart.
 function spread(longitudes, gap) {
   const items = longitudes.map((lon, index) => ({ index, at: lon })).sort((a, b) => a.at - b.at);
@@ -165,10 +193,11 @@ function moonDisc(elongation, r) {
 }
 
 // The chart wheel: 0° Aries at nine o'clock, signs running counter-clockwise.
-// Outer glyphs are the sky now, the inner ring is the natal chart, chords are aspects.
+// Glyphs are the sky now, chords are its aspects, and the gold dots on the
+// inner track are the natal chart. The table beside the wheel says the same in words.
 function wheelGroup(reading, cx, cy, R) {
   const at = (lon, r) => [n(cx - r * Math.cos(lon * DEG)), n(cy + r * Math.sin(lon * DEG))];
-  const band = R - 34;
+  const band = R - 38;
   const parts = [`<circle cx="${cx}" cy="${cy}" r="${R}" fill="${COLOR.panel}" stroke="${COLOR.gold}" stroke-width="2"/>`];
   for (let i = 0; i < 12; i++) {
     const [x1, y1] = at(i * 30, R);
@@ -176,32 +205,32 @@ function wheelGroup(reading, cx, cy, R) {
     const [x3, y3] = at(i * 30 + 30, band);
     const [x4, y4] = at(i * 30, band);
     parts.push(`<path d="M${x1} ${y1}A${R} ${R} 0 0 0 ${x2} ${y2}L${x3} ${y3}A${band} ${band} 0 0 1 ${x4} ${y4}Z" fill="${ELEMENTS[i % 4]}" opacity="0.16"/>`);
-    parts.push(`<path d="M${x1} ${y1}L${x4} ${y4}" stroke="${COLOR.gold}" stroke-width="0.75" opacity="0.7"/>`);
-    const [gx, gy] = at(i * 30 + 15, R - 17);
-    // Abbreviations, not the Unicode sign glyphs: many renderers replace those with colour emoji.
-    parts.push(text(gx, gy + 4, SIGNS[i].slice(0, 3).toUpperCase(), { size: 11, fill: ELEMENTS[i % 4], spacing: 1.5 }));
+    parts.push(`<path d="M${x1} ${y1}L${x4} ${y4}" stroke="${COLOR.gold}" stroke-width="1" opacity="0.7"/>`);
+    const [gx, gy] = at(i * 30 + 15, R - 19);
+    parts.push(glyph(SIGNS[i], gx, gy, 21, ELEMENTS[i % 4]));
   }
   parts.push(`<circle cx="${cx}" cy="${cy}" r="${band}" fill="${COLOR.night}" stroke="${COLOR.gold}" stroke-width="1"/>`);
 
-  const ring = (positions, radius, size, fill) => {
-    const labels = spread(BODIES.map((body) => positions[body].lon), size * 0.45);
-    BODIES.forEach((body, i) => {
-      const p = positions[body];
-      const [tx1, ty1] = at(p.lon, radius + size * 0.9 + 6);
-      const [tx2, ty2] = at(p.lon, radius + size * 0.9);
-      parts.push(`<path d="M${tx1} ${ty1}L${tx2} ${ty2}" stroke="${fill}" stroke-width="1.5"/>`);
-      const [x, y] = at(labels[i], radius);
-      parts.push(text(x, y + size * 0.35, PLANET_GLYPHS[body] + TEXT_STYLE, { size, fill: p.retrograde ? COLOR.bad : fill }));
-    });
-  };
-  ring(reading.positions, band - 30, 24, COLOR.cream);
-  let chords = band - 58;
+  const glyphs = band - 30;
+  const labels = spread(BODIES.map((body) => reading.positions[body].lon), 13);
+  BODIES.forEach((body, i) => {
+    const p = reading.positions[body];
+    const color = p.retrograde ? COLOR.bad : COLOR.cream;
+    const [tx1, ty1] = at(p.lon, band);
+    const [tx2, ty2] = at(p.lon, band - 8);
+    parts.push(`<path d="M${tx1} ${ty1}L${tx2} ${ty2}" stroke="${color}" stroke-width="2"/>`);
+    const [x, y] = at(labels[i], glyphs);
+    parts.push(glyph(body, x, y, 25, color, 2.2));
+  });
+
+  const chords = band - 58;
+  parts.push(`<circle cx="${cx}" cy="${cy}" r="${chords}" fill="none" stroke="${COLOR.muted}" stroke-width="1"/>`);
   if (reading.natal) {
-    parts.push(`<circle cx="${cx}" cy="${cy}" r="${band - 56}" fill="none" stroke="${COLOR.muted}" stroke-width="0.75" stroke-dasharray="2 4"/>`);
-    ring(reading.natal.positions, band - 80, 17, COLOR.gold);
-    chords = band - 102;
+    for (const body of BODIES) {
+      const [x, y] = at(reading.natal.positions[body].lon, chords);
+      parts.push(`<circle cx="${x}" cy="${y}" r="${body === 'Sun' ? 6 : 3.5}" fill="${COLOR.gold}" stroke="${COLOR.night}" stroke-width="1.5"/>`);
+    }
   }
-  parts.push(`<circle cx="${cx}" cy="${cy}" r="${chords}" fill="none" stroke="${COLOR.muted}" stroke-width="0.75"/>`);
   for (const aspect of reading.aspects) {
     if (aspect.name === 'conjunct') continue;
     const [x1, y1] = at(reading.positions[aspect.a].lon, chords);
@@ -209,73 +238,107 @@ function wheelGroup(reading, cx, cy, R) {
     let stroke = COLOR.muted;
     if (aspect.delta > 0) stroke = COLOR.good;
     else if (aspect.delta < 0) stroke = COLOR.bad;
-    parts.push(`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${stroke}" stroke-width="1.5" opacity="${n(1 - aspect.orb / 8)}"/>`);
+    parts.push(`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${stroke}" stroke-width="2" opacity="${n(1 - aspect.orb / 8)}"/>`);
   }
   const elongation = (((reading.positions.Moon.lon - reading.positions.Sun.lon) % 360) + 360) % 360;
-  parts.push(`<g transform="translate(${cx} ${cy})">${moonDisc(elongation, 20)}</g>`);
+  parts.push(`<g transform="translate(${cx} ${cy})">${moonDisc(elongation, 22)}</g>`);
   return parts.join('');
 }
 
 const VERDICT_COLOR = { auspicious: COLOR.gold, tolerable: COLOR.cream, 'ill-omened': COLOR.bad };
+const signed = (delta) => (delta > 0 ? `+${delta}` : String(delta).replace('-', '−'));
+const clip = (content, length) => (content.length > length ? `${content.slice(0, length - 1).trimEnd()}…` : content);
+const stamp = (time) => `${new Date(time).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 
-// The whole reading as one picture, 1040 by 600.
+function heading(x, y, content) {
+  return text(x, y, content.toUpperCase(), { size: 13, fill: COLOR.gold, anchor: 'start', spacing: 2.5 });
+}
+
+// The whole reading as one picture, 1000 by 800. It is shown scaled down in
+// READMEs and comments, so no text is smaller than 13 and the wheel is
+// repeated as a table.
 function readingSvg(reading, window) {
-  const W = 1040;
-  const H = 600;
-  const left = 572;
-  const right = 1012;
-  const parts = [`<rect width="${W}" height="${H}" fill="${COLOR.night}"/>`];
-  parts.push(text(28, 38, 'DEPLOYSCOPE', { size: 15, fill: COLOR.gold, anchor: 'start', spacing: 4 }));
-  parts.push(text(28, 58, `${new Date(reading.time).toISOString().slice(0, 16).replace('T', ' ')} UTC · ${String(reading.seed).slice(0, 12)}`,
-    { size: 12, fill: COLOR.muted, anchor: 'start' }));
-  parts.push(wheelGroup(reading, 286, 322, 250));
-
-  // Verdict and score gauge, with the pass mark.
+  const W = 1000;
+  const H = 800;
+  const edge = 28;
+  const right = W - edge;
   const color = VERDICT_COLOR[reading.verdict];
-  parts.push(text(left, 52, reading.verdict.toUpperCase(), { size: 30, fill: color, anchor: 'start', spacing: 3 }));
-  parts.push(text(right, 52, `${reading.score}/100`, { size: 24, fill: color, anchor: 'end' }));
-  const gauge = right - left;
-  parts.push(`<rect x="${left}" y="68" width="${gauge}" height="8" rx="4" fill="${COLOR.panel}"/>`);
-  parts.push(`<rect x="${left}" y="68" width="${n((gauge * reading.score) / 100)}" height="8" rx="4" fill="${color}"/>`);
-  const mark = n(left + (gauge * reading.failBelow) / 100);
-  parts.push(`<path d="M${mark} 62V82" stroke="${COLOR.cream}" stroke-width="1.5"/>`);
-  parts.push(text(mark, 96, `required ${reading.failBelow}`, { size: 11, fill: COLOR.muted }));
+  const parts = [`<rect width="${W}" height="${H}" fill="${COLOR.night}"/>`];
+
+  // Verdict, score and the gauge with its pass mark.
+  parts.push(text(edge, 34, `DEPLOYSCOPE · ${stamp(reading.time)} · ${String(reading.seed).slice(0, 12)}`,
+    { size: 13, fill: COLOR.muted, anchor: 'start', spacing: 1 }));
+  parts.push(text(edge, 82, reading.verdict.toUpperCase(), { size: 40, fill: color, anchor: 'start', spacing: 4 }));
+  parts.push(text(right, 82, `${reading.score}/100`, { size: 40, fill: color, anchor: 'end' }));
+  const gauge = right - edge;
+  parts.push(`<rect x="${edge}" y="100" width="${gauge}" height="10" rx="5" fill="${COLOR.panel}"/>`);
+  if (reading.score > 0) parts.push(`<rect x="${edge}" y="100" width="${n((gauge * reading.score) / 100)}" height="10" rx="5" fill="${color}"/>`);
+  const mark = n(edge + (gauge * reading.failBelow) / 100);
+  parts.push(`<path d="M${mark} 94V116" stroke="${COLOR.cream}" stroke-width="2"/>`);
+  parts.push(text(mark + 8, 132, `pass mark ${reading.failBelow}`, { size: 13, fill: COLOR.muted, anchor: 'start' }));
+  if (reading.verdict === 'ill-omened') {
+    parts.push(text(right, 132, window ? `Next favourable window: ${stamp(window.time)}` : 'No favourable window in the next 14 days',
+      { size: 15, fill: COLOR.gold, anchor: 'end' }));
+  }
+
+  // The sky: as a wheel, and as a table.
+  parts.push(wheelGroup(reading, 210, 348, 182));
+  const table = 418;
+  parts.push(heading(table, 170, 'The sky now'));
+  BODIES.forEach((body, i) => {
+    const p = reading.positions[body];
+    const y = 204 + i * 34;
+    const tone = p.retrograde ? COLOR.bad : COLOR.cream;
+    parts.push(glyph(body, table + 11, y - 6, 22, tone));
+    parts.push(text(table + 34, y, body, { size: 16, fill: tone, anchor: 'start' }));
+    parts.push(glyph(p.sign, table + 128, y - 6, 18, ELEMENTS[SIGNS.indexOf(p.sign) % 4]));
+    parts.push(text(table + 146, y, `${Math.floor(p.lon % 30)}° ${p.sign}`, { size: 15, fill: COLOR.muted, anchor: 'start' }));
+    if (p.retrograde) parts.push(text(table + 262, y, p.stationary ? 'station' : 'retro', { size: 13, fill: COLOR.bad, anchor: 'end' }));
+  });
+
+  // The omens that weigh most.
+  const list = 704;
+  parts.push(heading(list, 170, 'Weightiest omens'));
+  [...reading.omens].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 9).forEach((omen, i) => {
+    const y = 204 + i * 34;
+    parts.push(text(list + 30, y, signed(omen.delta), { size: 16, fill: omen.delta < 0 ? COLOR.bad : COLOR.good, anchor: 'end' }));
+    parts.push(text(list + 40, y, clip(omen.code.startsWith('OMEN1') ? omen.title.replace(/^.*?: /, '') : omen.title, 32), { size: 14, anchor: 'start' }));
+  });
+  parts.push(`<path d="M${edge} 562H${right}" stroke="${COLOR.panel}" stroke-width="2"/>`);
 
   // The spread.
-  const scale = 0.72;
-  const step = (gauge - CARD_W * scale) / 2;
+  const scale = 0.5;
+  const step = 132;
+  parts.push(heading(edge, 596, 'The spread'));
   reading.cards.forEach((card, i) => {
-    const x = left + i * step;
-    parts.push(`<g transform="translate(${n(x)} 116) scale(${scale})">${cardGroup(card.number, card.reversed)}</g>`);
-    const centre = x + (CARD_W * scale) / 2;
-    parts.push(text(centre, 352, card.position, { size: 12, fill: COLOR.muted }));
-    parts.push(text(centre, 370, `${card.reversed ? 'reversed ' : ''}${card.delta > 0 ? '+' : ''}${card.delta}`,
-      { size: 12, fill: card.delta < 0 ? COLOR.bad : COLOR.good }));
+    const x = edge + i * step;
+    parts.push(`<g transform="translate(${x} 612) scale(${scale})">${cardGroup(card.number, card.reversed)}</g>`);
+  });
+  const cardText = edge + 3 * step - 14;
+  reading.cards.forEach((card, i) => {
+    const y = 640 + i * 46;
+    parts.push(text(cardText, y, card.position, { size: 13, fill: COLOR.muted, anchor: 'start' }));
+    parts.push(text(cardText, y + 20, clip(`${card.name}${card.reversed ? ', reversed' : ''}`, 26), { size: 16, anchor: 'start' }));
+    parts.push(text(cardText + 222, y + 20, signed(card.delta), { size: 16, fill: card.delta < 0 ? COLOR.bad : COLOR.good, anchor: 'end' }));
   });
 
   // The hexagram, and the one it changes to.
+  const hex = 688;
   const { primary, relating, lines, changing } = reading.hexagram;
-  parts.push(`<g transform="translate(${left} 396)">${hexagramGroup(lines, changing)}</g>`);
-  parts.push(text(left + 96, 428, `${primary.number} · ${primary.name}`, { size: 16, anchor: 'start' }));
-  if (relating) {
-    parts.push(text(left + 96, 452, `changing to ${relating.number} · ${relating.name}`, { size: 13, fill: COLOR.muted, anchor: 'start' }));
-  } else {
-    parts.push(text(left + 96, 452, 'no changing lines', { size: 13, fill: COLOR.muted, anchor: 'start' }));
-  }
+  parts.push(heading(hex, 596, 'The hexagram'));
+  parts.push(`<g transform="translate(${hex} 614)">${hexagramGroup(lines, changing)}</g>`);
+  parts.push(text(hex + 100, 640, `${primary.number} · ${clip(primary.name, 20)}`, { size: 16, anchor: 'start' }));
+  parts.push(text(hex + 100, 662, relating ? `changing to ${relating.number} ·` : 'no changing lines', { size: 14, fill: COLOR.muted, anchor: 'start' }));
+  if (relating) parts.push(text(hex + 100, 682, clip(relating.name, 24), { size: 14, fill: COLOR.muted, anchor: 'start' }));
 
-  // Footer lines: what the reading was personal to, and when to come back.
-  const notes = [];
-  if (reading.natal) notes.push(`Repository Sun in ${reading.natal.sunSign}, ${reading.natal.age.toFixed(1)} years old`);
-  if (reading.release) notes.push(`Release ${reading.release.version} is a ${reading.release.number}`);
-  notes.push(`Moon: ${reading.moonPhase}${reading.voidOfCourse ? ', void of course' : ''}`);
-  if (reading.verdict === 'ill-omened') {
-    notes.unshift(window ? `Next favourable window: ${new Date(window.time).toISOString().slice(0, 16).replace('T', ' ')} UTC` : 'No favourable window in the next 14 days');
-  }
-  notes.forEach((note, i) => {
-    const urgent = i === 0 && reading.verdict === 'ill-omened';
-    parts.push(text(left, 498 + i * 19, note, { size: urgent ? 14 : 12, fill: urgent ? COLOR.gold : COLOR.muted, anchor: 'start' }));
-  });
-  parts.push(text(left, 574, 'outer glyphs: the sky now · inner ring: natal chart · red glyph: retrograde', { size: 10, fill: COLOR.muted, anchor: 'start', opacity: 0.8 }));
+  // What the reading was personal to.
+  const notes = [`Moon: ${reading.moonPhase}${reading.voidOfCourse ? ', void of course' : ''}`];
+  if (reading.natal) notes.push(`Repository Sun in ${reading.natal.sunSign}, age ${reading.natal.age.toFixed(1)}`);
+  if (reading.release) notes.push(`Release ${clip(String(reading.release.version), 14)} is a ${reading.release.number}`);
+  notes.forEach((note, i) => parts.push(text(hex, 722 + i * 21, note, { size: 14, fill: COLOR.muted, anchor: 'start' })));
+
+  parts.push(text(edge, H - 14, `Red: retrograde. Chords: aspects, green in harmony, red at odds.${reading.natal ? ' Gold dots: the natal chart, the large one its Sun.' : ''}`,
+    { size: 13, fill: COLOR.muted, anchor: 'start', opacity: 0.85 }));
   return document(W, H, parts.join(''));
 }
 

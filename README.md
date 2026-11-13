@@ -104,11 +104,13 @@ explicitly there, or the natal chart is skipped.
 
 ## Pictures
 
-Every run draws the reading as one SVG: the chart wheel (the sky now on the
-outside, the natal chart inside, aspects as chords, retrograde planets in
-red, the Moon's phase in the middle), the three cards, the hexagram with its
-changing lines, and the score against the pass mark. Its path is the
-`reading-svg` output.
+Every run draws the reading as one SVG: the verdict and the score against the
+pass mark; the chart wheel (the sky now, aspects as chords, the natal chart as
+gold dots, retrograde planets in red, the Moon's phase in the middle) with the
+same positions as a table beside it; the omens that weigh most; the three
+cards; and the hexagram with its changing lines. Planet and sign glyphs are
+drawn as paths, not taken from a font, so the picture looks the same
+everywhere. Its path is the `reading-svg` output.
 
 GitHub does not render inline SVG in comments or job summaries, only images
 with a URL, so the comment gets its pictures two ways:
