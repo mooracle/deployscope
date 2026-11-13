@@ -51,9 +51,12 @@ const NEON = '<filter id="ds-neon" x="-30%" y="-30%" width="160%" height="160%" 
   + '<feMerge><feMergeNode in="wide"/><feMergeNode in="wide"/><feMergeNode in="near"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
   + '<clipPath id="ds-window"><path d="M-70 -84L-62 -92H62L70 -84V84L62 92H-62L-70 84Z"/></clipPath>';
 
-// A card as a group at the origin, CARD_W by CARD_H. A reversed card has its picture turned
-// upside down, as it would lie on the table, but its frame and lettering stay readable and
-// its caption gives the reversed meaning.
+function hexByte(value) {
+  return `0x${value.toString(16).toUpperCase().padStart(2, '0')}`;
+}
+
+// A card as a group at the origin, CARD_W by CARD_H. A reversed card shows its scene after
+// the meaning has turned, and is marked REVERSED in red under its flipped byte.
 // Every card carries the same definitions, so several cards can share one document.
 function cardGroup(number, reversed) {
   const [primary, secondary] = CARDS[number].colors;
@@ -65,14 +68,14 @@ function cardGroup(number, reversed) {
     `<rect width="${CARD_W}" height="${CARD_H}" rx="10" fill="${ARCANA_BACK}"/>`,
     `<g filter="url(#ds-neon)">`,
     `<path d="M18 5H162L175 18V282L162 295H18L5 282V18Z" fill="none" stroke="${primary}" stroke-width="2"/>`,
-    `<path d="M12 60V24L24 12H60M168 240V276L156 288H120" fill="none" stroke="${secondary}" stroke-width="1.5"/>`,
+    `<path d="M12 60V24L24 12H60M168 240V276L156 288H120" fill="none" stroke="${reversed ? COLOR.bad : secondary}" stroke-width="1.5"/>`,
     mono(22, 37, ROMAN[number], 19, primary, 'start', 2),
-    reversed ? mono(158, 36, 'REVERSED', 9, COLOR.cream, 'end', 1)
-      : mono(158, 36, `0x${number.toString(16).toUpperCase().padStart(2, '0')}`, 10, secondary, 'end', 1),
-    mono(CARD_W / 2, 263, name, name.length > 14 ? 11 : 13, '#f4f7ff', 'middle', name.length > 14 ? 1 : 2),
+    // The tag is the card's number as a byte; reversed, every bit of it is flipped (0x11 becomes 0xEE).
+    reversed ? mono(158, 32, hexByte(~number & 0xff), 10, COLOR.bad, 'end', 1) + mono(158, 43, 'REVERSED', 6.5, COLOR.bad, 'end', 1)
+      : mono(158, 36, hexByte(number), 10, secondary, 'end', 1),
+    mono(CARD_W / 2, 271, name, name.length > 14 ? 11 : 13, '#f4f7ff', 'middle', name.length > 14 ? 1 : 2),
     `</g>`,
-    mono(CARD_W / 2, 281, `// ${reversed ? CARDS[number].reversed : CARDS[number].caption}`, 9, secondary, 'middle', 0.5),
-    `<g transform="translate(${CARD_W / 2} 144)"><g clip-path="url(#ds-window)"><g filter="url(#ds-neon)"${reversed ? ' transform="rotate(180)"' : ''}>${CARDS[number].scene()}</g></g>`
+    `<g transform="translate(${CARD_W / 2} 144)"><g clip-path="url(#ds-window)"><g filter="url(#ds-neon)">${CARDS[number].scene(reversed)}</g></g>`
       + `<path d="M-70 -84L-62 -92H62L70 -84V84L62 92H-62L-70 84Z" fill="none" stroke="${secondary}" stroke-width="1" opacity="0.6"/></g>`,
   ].join('');
   return `<g>${body}</g>`;

@@ -205,11 +205,13 @@ SHA-256 of the seed.
 Each card is drawn as what it means in software delivery, not as the medieval
 scene: the Fool jumps the gap where staging should be, the Lovers are a model
 and its GPU, Justice weighs code against tests, the Moon is a build that is
-green in CI and red in its reflection. A reversed card is the same card with
-its meaning blocked or turned inside out: its picture lies upside down, as on
-the table, while the frame stays readable, is marked `REVERSED`, and carries
-the reversed meaning as its caption (the Star reversed reads "dashboards are
-dark", the Lovers reversed "CUDA out of memory").
+green in CI and red in its reflection. A reversed card is not turned upside down: it is
+redrawn as the same scene after its meaning has turned. The Star's green
+checklist becomes a column of question marks under a `NO DATA` button, the
+Lovers' heart breaks and the GPU reads `OOM`, the Devil's padlock opens. The
+card is marked `REVERSED`, the byte in its corner has every bit flipped (the
+Star's `0x11` becomes `0xEE`). A card carries only its number and name; what
+it says about this deployment is in the reading beside it.
 
 ![The 22 major arcana](docs/deck.svg)
 
