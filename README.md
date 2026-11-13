@@ -289,6 +289,7 @@ Layout:
 - `src/omens.js`: rules, scoring, verdict, next-window forecast
 - `src/report.js`: log, annotations and job summary
 - `src/svg.js`: drawings; `scripts/build-assets.js` writes the static ones to `assets/`
+- `src/arcana.js`: the scene on each card, built from shared pieces (figure, sun, tower, wing, horse)
 - `src/comment.js`, `src/github.js`: the pull request comment and the API calls behind it
 - `src/main.js`: action entry point
 

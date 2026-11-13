@@ -7,6 +7,7 @@
 const { BODIES, SIGNS } = require('./ephemeris');
 const { DECK } = require('./tarot');
 const { hexagram: lookupHexagram } = require('./iching');
+const { scene } = require('./arcana');
 
 const COLOR = {
   night: '#14122b', panel: '#1d1a3d', gold: '#d9b45a', cream: '#f3ead7', muted: '#9a93b8', good: '#5fc9b8', bad: '#e2605b',
@@ -43,53 +44,27 @@ function points(count, radius, { start = -90, inner } = {}) {
   return out;
 }
 
-function rays(count, from, to) {
-  let d = '';
-  for (let i = 0; i < count; i++) {
-    const a = ((i * 360) / count) * DEG;
-    d += `M${n(from * Math.cos(a))} ${n(from * Math.sin(a))}L${n(to * Math.cos(a))} ${n(to * Math.sin(a))}`;
-  }
-  return `<path d="${d}"/>`;
-}
-
-const LEMNISCATE = 'M0 0C12 -16 34 -16 34 0C34 16 12 16 0 0C-12 -16 -34 -16 -34 0C-34 16 -12 16 0 0';
-const CRESCENT = '<path d="M10 -30A32 32 0 1 0 10 30A25 25 0 1 1 10 -30Z"/>';
-const pentagram = [0, 2, 4, 1, 3].map((i) => points(5, 42, { start: 90 })[i]).join(' ');
-
-// One emblem per major arcanum, drawn inside a 100 by 100 box centred on the origin.
-const EMBLEMS = [
-  /* Fool */ '<circle cx="-6" cy="-4" r="24"/><circle cx="32" cy="-36" r="5" fill="currentColor"/><path d="M-48 40H14V54"/>',
-  /* Magician */ `<path d="${LEMNISCATE}" transform="translate(0 -30)"/><path d="M0 -8V44M-30 44H30"/>`,
-  /* High Priestess */ `<path d="M-42 -44V44M42 -44V44M-48 -44H-36M36 -44H48M-48 44H-36M36 44H48"/><g transform="scale(0.72)">${CRESCENT}</g>`,
-  /* Empress */ '<circle cy="-14" r="22"/><path d="M0 8V46M-16 28H16"/>',
-  /* Emperor */ '<path d="M-34 22V-16L-17 6L0 -26L17 6L34 -16V22Z"/><path d="M-34 34H34"/>',
-  /* Hierophant */ '<path d="M0 -46V46M-12 -30H12M-22 -12H22M-32 6H32"/>',
-  /* Lovers */ '<circle cx="-13" r="25"/><circle cx="13" r="25"/>',
-  /* Chariot */ `<path d="M-34 -42H34V-2H-34Z"/><polygon points="${points(8, 13, { inner: 5 }).join(' ')}" transform="translate(0 -22)"/><circle cx="-22" cy="24" r="16"/><circle cx="22" cy="24" r="16"/>`,
-  /* Strength */ `<path d="${LEMNISCATE}" transform="translate(0 -32)"/><g transform="translate(0 20)"><circle r="14"/>${rays(12, 19, 27)}</g>`,
-  /* Hermit */ '<path d="M0 -48V-36M-16 -36H16L24 34H-24Z"/><path d="M0 -20L13 3H-13ZM0 16L13 -7H-13Z"/>',
-  /* Wheel of Fortune */ `<circle r="42"/><circle r="9"/>${rays(8, 9, 42)}`,
-  /* Justice */ '<path d="M0 -46V46M-10 34H10M-36 -28H36M-36 -28L-47 2H-25ZM36 -28L25 2H47Z"/>',
-  /* Hanged Man */ '<path d="M-36 -44H36M0 -44V-22M-14 -22H14L0 12Z"/><circle cy="24" r="10"/>',
-  /* Death */ '<path d="M-22 46L12 -40"/><path d="M12 -40C40 -46 52 -14 38 8C40 -12 30 -28 12 -40Z"/><path d="M-44 46H30"/>',
-  /* Temperance */ '<path d="M-44 -40H-12L-28 -12ZM12 14H44L28 42Z"/><path d="M-28 -12C-28 12 28 -10 28 14" stroke-dasharray="4 4"/>',
-  /* Devil */ `<polygon points="${pentagram}"/>`,
-  /* Tower */ '<path d="M-18 46V-20H18V46M-24 -20V-32H-12V-26H12V-32H24V-20Z"/><rect x="-5" y="4" width="10" height="14"/><path d="M48 -50L32 -38L40 -34L26 -22"/>',
-  /* Star */ `<polygon points="${points(16, 30, { inner: 11 }).join(' ')}"/>${[0, 1, 2, 3, 4, 5, 6].map((i) => `<circle cx="${n(44 * Math.cos((i * 360 / 7 - 90) * DEG))}" cy="${n(44 * Math.sin((i * 360 / 7 - 90) * DEG))}" r="2.5" fill="currentColor"/>`).join('')}`,
-  /* Moon */ `<g transform="translate(0 -8)">${CRESCENT}</g><path d="M-16 34V44M-2 38V48M12 34V44"/>`,
-  /* Sun */ `<circle r="20"/>${rays(12, 28, 46)}`,
-  /* Judgement */ '<path d="M-46 -24H6L36 -44V2L6 -18H-46Z"/><path d="M-24 4V46M-24 8H12V34H-24M-6 12V30M-16 21H4"/>',
-  /* World */ '<ellipse rx="28" ry="42"/><circle r="6"/><circle cx="-42" cy="-42" r="3" fill="currentColor"/><circle cx="42" cy="-42" r="3" fill="currentColor"/><circle cx="-42" cy="42" r="3" fill="currentColor"/><circle cx="42" cy="42" r="3" fill="currentColor"/>',
-];
+// The arched window a card's scene is seen through, in the scene's own coordinates.
+const ARCH = 'M-62 78V-40A62 62 0 0 1 62 -40V78Z';
+const SKY = `<linearGradient id="ds-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#191640"/>`
+  + `<stop offset="0.7" stop-color="#3b2f75"/><stop offset="1" stop-color="#6a4a8c"/></linearGradient>`
+  + `<clipPath id="ds-arch"><path d="${ARCH}"/></clipPath>`;
 
 // A card as a group at the origin, CARD_W by CARD_H. A reversed card is drawn upside down.
+// Every card carries the same two definitions, so several cards can share one document.
 function cardGroup(number, reversed) {
+  const corner = (x, y) => `<path d="M${x} ${y - 5}L${x + 5} ${y}L${x} ${y + 5}L${x - 5} ${y}Z" fill="${COLOR.gold}"/>`;
   const body = [
+    `<defs>${SKY}</defs>`,
     `<rect width="${CARD_W}" height="${CARD_H}" rx="12" fill="${COLOR.panel}" stroke="${COLOR.gold}" stroke-width="2"/>`,
-    `<rect x="9" y="9" width="${CARD_W - 18}" height="${CARD_H - 18}" rx="7" fill="none" stroke="${COLOR.gold}" stroke-width="0.75" opacity="0.6"/>`,
-    text(CARD_W / 2, 44, ROMAN[number], { size: 22, fill: COLOR.gold, spacing: 2 }),
-    `<g transform="translate(${CARD_W / 2} 146) scale(1.15)" fill="none" stroke="${COLOR.gold}" color="${COLOR.gold}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">${EMBLEMS[number]}</g>`,
-    text(CARD_W / 2, 264, DECK[number].name.toUpperCase(), { size: 13, spacing: 1 }),
+    `<rect x="8" y="8" width="${CARD_W - 16}" height="${CARD_H - 16}" rx="7" fill="none" stroke="${COLOR.gold}" stroke-width="0.75" opacity="0.6"/>`,
+    corner(18, 18), corner(CARD_W - 18, 18), corner(18, CARD_H - 18), corner(CARD_W - 18, CARD_H - 18),
+    `<path d="M40 30H${82 - ROMAN[number].length * 8}M${98 + ROMAN[number].length * 8} 30H140" stroke="${COLOR.gold}" stroke-width="1" opacity="0.7"/>`,
+    text(CARD_W / 2, 37, ROMAN[number], { size: 20, fill: COLOR.gold, spacing: 2 }),
+    `<g transform="translate(${CARD_W / 2} 152)"><path d="${ARCH}" fill="url(#ds-sky)"/>`
+      + `<g clip-path="url(#ds-arch)">${scene(number)}</g>`
+      + `<path d="${ARCH}" fill="none" stroke="${COLOR.gold}" stroke-width="2"/></g>`,
+    text(CARD_W / 2, 268, DECK[number].name.toUpperCase(), { size: DECK[number].name.length > 15 ? 12 : 14, spacing: 1.2 }),
   ].join('');
   return reversed ? `<g transform="rotate(180 ${CARD_W / 2} ${CARD_H / 2})">${body}</g>` : `<g>${body}</g>`;
 }
@@ -261,12 +236,12 @@ function heading(x, y, content) {
   return text(x, y, content.toUpperCase(), { size: 13, fill: COLOR.gold, anchor: 'start', spacing: 2.5 });
 }
 
-// The whole reading as one picture, 1000 by 800. It is shown scaled down in
+// The whole reading as one picture, 1000 by 836. It is shown scaled down in
 // READMEs and comments, so no text is smaller than 13 and the wheel is
 // repeated as a table.
 function readingSvg(reading, window) {
   const W = 1000;
-  const H = 800;
+  const H = 836;
   const edge = 28;
   const right = W - edge;
   const color = VERDICT_COLOR[reading.verdict];
@@ -314,16 +289,16 @@ function readingSvg(reading, window) {
   parts.push(`<path d="M${edge} 562H${right}" stroke="${COLOR.panel}" stroke-width="2"/>`);
 
   // The spread.
-  const scale = 0.5;
-  const step = 132;
+  const scale = 0.62;
+  const step = 124;
   parts.push(heading(edge, 596, 'The spread'));
   reading.cards.forEach((card, i) => {
     const x = edge + i * step;
     parts.push(`<g transform="translate(${x} 612) scale(${scale})">${cardGroup(card.number, card.reversed)}</g>`);
   });
-  const cardText = edge + 3 * step - 14;
+  const cardText = edge + 3 * step + 6;
   reading.cards.forEach((card, i) => {
-    const y = 640 + i * 46;
+    const y = 650 + i * 56;
     parts.push(text(cardText, y, card.position, { size: 13, fill: COLOR.muted, anchor: 'start' }));
     parts.push(text(cardText, y + 20, clip(`${card.name}${card.reversed ? ', reversed' : ''}`, 26), { size: 16, anchor: 'start' }));
     parts.push(text(cardText + 222, y + 20, signed(card.delta), { size: 16, fill: card.delta < 0 ? COLOR.bad : COLOR.good, anchor: 'end' }));
