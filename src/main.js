@@ -102,7 +102,9 @@ async function illustrate(reading, window, defied) {
   const ref = process.env.GITHUB_ACTION_REF;
   const assets = action && ref ? `${server}/${action}/raw/${ref}/assets` : undefined;
   try {
-    await api.upsertComment(pullRequest, comment.MARKER, comment.body(reading, { window, assets, image, defied }));
+    const run = process.env.GITHUB_RUN_ID ? `${server}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}` : undefined;
+    const docs = action ? `${server}/${action}#theoretical-basis` : undefined;
+    await api.upsertComment(pullRequest, comment.MARKER, comment.body(reading, { window, assets, image, run, docs, defied }));
   } catch (err) {
     console.log(report.annotation('warning', 'OMEN450 The reading could not be posted to the pull request',
       `${err.message}. Commenting needs "pull-requests: write" permission, which pull requests from forks do not get.`));

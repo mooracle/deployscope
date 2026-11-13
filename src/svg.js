@@ -118,6 +118,13 @@ function cardSvg(number, reversed) {
   return document(CARD_W, CARD_H, cardGroup(number, reversed));
 }
 
+// The mark shown in the heading of the pull request comment: a crescent and a star.
+function iconSvg() {
+  return document(64, 64, `<rect width="64" height="64" rx="14" fill="${COLOR.night}"/>`
+    + `<path d="M40 10A23 23 0 1 0 54 44A19 19 0 1 1 40 10Z" fill="${COLOR.gold}"/>`
+    + `<polygon points="${points(8, 8, { inner: 3 }).join(' ')}" transform="translate(45 22)" fill="${COLOR.cream}"/>`);
+}
+
 // Lines of a hexagram from its King Wen number, by searching the 64 line patterns.
 function linesOf(number) {
   for (let bits = 0; bits < 64; bits++) {
@@ -342,4 +349,4 @@ function readingSvg(reading, window) {
   return document(W, H, parts.join(''));
 }
 
-module.exports = { cardSvg, hexagramSvg, readingSvg, linesOf, SIGNS };
+module.exports = { cardSvg, hexagramSvg, iconSvg, readingSvg, linesOf, SIGNS };

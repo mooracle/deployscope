@@ -31,7 +31,7 @@ function assertWellFormed(document) {
 
 test('the committed assets are what the drawing code produces', () => {
   const files = assets();
-  assert.equal(Object.keys(files).length, 22 * 2 + 64);
+  assert.equal(Object.keys(files).length, 1 + 22 * 2 + 64);
   for (const [name, content] of Object.entries(files)) {
     assertWellFormed(content);
     assert.equal(fs.readFileSync(path.join(__dirname, '..', 'assets', name), 'utf8'), content, `${name} is stale, run npm run assets`);
@@ -83,7 +83,7 @@ test('a refused deployment says so in the comment, with the window', () => {
   const reading = divine(q);
   assert.equal(reading.verdict, 'ill-omened');
   const body = comment.body(reading, { window: nextWindow(q) || null });
-  assert.match(body, /ILL-OMENED/);
+  assert.match(body, /❌ Ill-omened/);
   assert.match(body, /favourable window/);
 });
 

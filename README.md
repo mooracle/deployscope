@@ -53,8 +53,10 @@ Advisory mode, using the outputs yourself:
         run: echo "come back at ${{ steps.oracle.outputs.next-window }}"
 ```
 
-On pull requests the reading is also posted as a comment, with the cards and
-the hexagram as pictures. Give the job permission to do so:
+On pull requests the reading is also posted as a comment, laid out like a
+deployment bot's: one row with the status, score, spread and hexagram, and the
+full reading (card and hexagram pictures, every omen) folded under it. Give the
+job permission to do so:
 
 ```yaml
     permissions:

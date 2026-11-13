@@ -1,16 +1,16 @@
 'use strict';
 
 // Writes the static images that pull request comments link to:
-// assets/cards/<n>.svg, assets/cards/<n>r.svg (reversed) and assets/hexagrams/<n>.svg.
+// assets/icon.svg, assets/cards/<n>.svg, assets/cards/<n>r.svg (reversed) and assets/hexagrams/<n>.svg.
 // Run with `npm run assets` after changing src/svg.js; a test checks they are current.
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { cardSvg, hexagramSvg } = require('../src/svg');
+const { cardSvg, hexagramSvg, iconSvg } = require('../src/svg');
 const { DECK } = require('../src/tarot');
 
 function assets() {
-  const files = {};
+  const files = { 'icon.svg': iconSvg() };
   DECK.forEach((_, number) => {
     files[`cards/${number}.svg`] = cardSvg(number, false);
     files[`cards/${number}r.svg`] = cardSvg(number, true);
