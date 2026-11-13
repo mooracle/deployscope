@@ -1,0 +1,68 @@
+name: deployscope
+description: Gate deployments on planetary positions, a tarot spread and an I Ching hexagram. Fails the job when the omens are bad.
+author: mooracle
+branding:
+  icon: moon
+  color: purple
+
+inputs:
+  seed:
+    description: What the cards and the hexagram are cast for. The same seed always gives the same spread.
+    default: ${{ github.sha }}
+  time:
+    description: ISO 8601 moment to read the sky for. Defaults to now.
+    required: false
+  timezone:
+    description: IANA time zone used to decide which weekday it is.
+    default: UTC
+  born:
+    description: Birth moment of the repository for its natal chart (ISO 8601 or Unix seconds). Defaults to the repository creation time.
+    default: ${{ github.event.repository.created_at }}
+  version:
+    description: Release version for numerology. Defaults to the tag name on tag builds, empty otherwise.
+    default: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+  fail-below:
+    description: Fail the job when the score (0-100) is below this value.
+    default: '25'
+  defy-fate:
+    description: Report the omens but never fail the job.
+    default: 'false'
+  comment:
+    description: On pull requests, post the reading as a comment (one comment, updated on every run). Needs "pull-requests: write".
+    default: 'true'
+  publish-branch:
+    description: Branch to commit the reading's SVG to, so the chart wheel can be shown in the comment. Needs "contents: write". Empty disables it.
+    default: ''
+  github-token:
+    description: Token used for the comment and for publishing.
+    default: ${{ github.token }}
+
+outputs:
+  verdict:
+    description: auspicious, tolerable or ill-omened.
+  score:
+    description: Deployment favourability, 0-100.
+  cards:
+    description: The three cards drawn, comma separated.
+  hexagram:
+    description: The hexagram cast, and the one it changes to if any line changes.
+  mercury-retrograde:
+    description: true when Mercury is retrograde.
+  moon-phase:
+    description: Current phase of the Moon.
+  moon-void:
+    description: true when the Moon is void of course.
+  sun-sign:
+    description: Sun sign of the repository, empty without a birth moment.
+  release-number:
+    description: Numerological number of the release version, empty when not a tagged release.
+  next-window:
+    description: When ill-omened, the ISO 8601 hour at which the verdict next improves (empty if none within 14 days).
+  reading-svg:
+    description: Path of the reading drawn as an SVG (chart wheel, spread, hexagram), for upload as an artifact.
+  reading-url:
+    description: URL of the published SVG, when publish-branch is set.
+
+runs:
+  using: node24
+  main: src/main.js

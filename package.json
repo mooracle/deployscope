@@ -1,0 +1,16 @@
+{
+  "name": "deployscope",
+  "version": "0.1.0",
+  "description": "GitHub Action that gates deployments on planetary positions and a tarot spread",
+  "license": "MIT",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "test": "node --test",
+    "divine": "node src/main.js",
+    "assets": "node scripts/build-assets.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm test
+
+  consult:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      # The action's own CI must not depend on the sky, so fate is defied here.
+      - id: oracle
+        uses: ./
+        with:
+          defy-fate: true
+      - run: echo "verdict=${{ steps.oracle.outputs.verdict }} score=${{ steps.oracle.outputs.score }} cards=${{ steps.oracle.outputs.cards }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reading
+          path: ${{ steps.oracle.outputs.reading-svg }}
