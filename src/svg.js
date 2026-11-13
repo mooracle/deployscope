@@ -1,18 +1,18 @@
 'use strict';
 
 // Drawings: tarot cards, hexagrams, the chart wheel and the full reading.
-// Everything is plain SVG with system fonts, so the files render anywhere an
-// <img> does.
+// Everything is plain SVG with system fonts and one blur filter for the neon
+// glow, so the files render anywhere an <img> does.
 
 const { BODIES, SIGNS } = require('./ephemeris');
 const { DECK } = require('./tarot');
 const { hexagram: lookupHexagram } = require('./iching');
-const { scene } = require('./arcana');
+const { CARDS, BACK: ARCANA_BACK } = require('./arcana');
 
 const COLOR = {
-  night: '#14122b', panel: '#1d1a3d', gold: '#d9b45a', cream: '#f3ead7', muted: '#9a93b8', good: '#5fc9b8', bad: '#e2605b',
+  night: '#0b0a1a', panel: '#17152f', gold: '#ffe45c', cream: '#f4f7ff', muted: '#948fc0', good: '#5dff9b', bad: '#ff4d6d', cyan: '#22e6ff', pink: '#ff3df2',
 };
-const ELEMENTS = ['#e2605b', '#8fbf6a', '#e9d27a', '#6aa8e0']; // fire, earth, air, water, repeating from Aries
+const ELEMENTS = ['#ff4d6d', '#5dff9b', '#ffe45c', '#22e6ff']; // fire, earth, air, water, repeating from Aries
 const SERIF = "Georgia, 'Times New Roman', serif";
 const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV',
   'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'];
@@ -44,27 +44,39 @@ function points(count, radius, { start = -90, inner } = {}) {
   return out;
 }
 
-// The arched window a card's scene is seen through, in the scene's own coordinates.
-const ARCH = 'M-62 78V-40A62 62 0 0 1 62 -40V78Z';
-const SKY = `<linearGradient id="ds-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#191640"/>`
-  + `<stop offset="0.7" stop-color="#3b2f75"/><stop offset="1" stop-color="#6a4a8c"/></linearGradient>`
-  + `<clipPath id="ds-arch"><path d="${ARCH}"/></clipPath>`;
+const MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
+// The glow of a neon tube: the drawing over two blurred copies of itself.
+const NEON = '<filter id="ds-neon" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">'
+  + '<feGaussianBlur stdDeviation="3" result="wide"/><feGaussianBlur in="SourceGraphic" stdDeviation="1" result="near"/>'
+  + '<feMerge><feMergeNode in="wide"/><feMergeNode in="wide"/><feMergeNode in="near"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+  + '<clipPath id="ds-window"><path d="M-70 -84L-62 -92H62L70 -84V84L62 92H-62L-70 84Z"/></clipPath>';
 
 // A card as a group at the origin, CARD_W by CARD_H. A reversed card is drawn upside down.
-// Every card carries the same two definitions, so several cards can share one document.
+// Every card carries the same definitions, so several cards can share one document.
 function cardGroup(number, reversed) {
-  const corner = (x, y) => `<path d="M${x} ${y - 5}L${x + 5} ${y}L${x} ${y + 5}L${x - 5} ${y}Z" fill="${COLOR.gold}"/>`;
+  const [primary, secondary] = CARDS[number].colors;
+  const name = DECK[number].name.toUpperCase();
+  const mono = (x, y, content, size, fill, anchor, spacing) => `<text x="${x}" y="${y}" font-family="${MONO}" font-size="${size}" `
+    + `font-weight="bold" fill="${fill}" text-anchor="${anchor}" letter-spacing="${spacing}">${esc(content)}</text>`;
+  let ticks = '';
+  for (let i = 0, x = 24; x < 156; i++) {
+    const width = 1 + ((number * 7 + i * 5) % 4);
+    ticks += `<rect x="${x}" y="276" width="${width}" height="7" fill="${secondary}"/>`;
+    x += width + 2 + ((number + i) % 3);
+  }
   const body = [
-    `<defs>${SKY}</defs>`,
-    `<rect width="${CARD_W}" height="${CARD_H}" rx="12" fill="${COLOR.panel}" stroke="${COLOR.gold}" stroke-width="2"/>`,
-    `<rect x="8" y="8" width="${CARD_W - 16}" height="${CARD_H - 16}" rx="7" fill="none" stroke="${COLOR.gold}" stroke-width="0.75" opacity="0.6"/>`,
-    corner(18, 18), corner(CARD_W - 18, 18), corner(18, CARD_H - 18), corner(CARD_W - 18, CARD_H - 18),
-    `<path d="M40 30H${82 - ROMAN[number].length * 8}M${98 + ROMAN[number].length * 8} 30H140" stroke="${COLOR.gold}" stroke-width="1" opacity="0.7"/>`,
-    text(CARD_W / 2, 37, ROMAN[number], { size: 20, fill: COLOR.gold, spacing: 2 }),
-    `<g transform="translate(${CARD_W / 2} 152)"><path d="${ARCH}" fill="url(#ds-sky)"/>`
-      + `<g clip-path="url(#ds-arch)">${scene(number)}</g>`
-      + `<path d="${ARCH}" fill="none" stroke="${COLOR.gold}" stroke-width="2"/></g>`,
-    text(CARD_W / 2, 268, DECK[number].name.toUpperCase(), { size: DECK[number].name.length > 15 ? 12 : 14, spacing: 1.2 }),
+    `<defs>${NEON}</defs>`,
+    `<rect width="${CARD_W}" height="${CARD_H}" rx="10" fill="${ARCANA_BACK}"/>`,
+    `<g filter="url(#ds-neon)">`,
+    `<path d="M18 5H162L175 18V282L162 295H18L5 282V18Z" fill="none" stroke="${primary}" stroke-width="2"/>`,
+    `<path d="M12 60V24L24 12H60M168 240V276L156 288H120" fill="none" stroke="${secondary}" stroke-width="1.5"/>`,
+    mono(22, 37, ROMAN[number], 19, primary, 'start', 2),
+    mono(158, 36, `0x${number.toString(16).toUpperCase().padStart(2, '0')}`, 10, secondary, 'end', 1),
+    mono(CARD_W / 2, 265, name, name.length > 14 ? 11 : 13, '#f4f7ff', 'middle', name.length > 14 ? 1 : 2),
+    `</g>`,
+    `<g opacity="0.7">${ticks}</g>`,
+    `<g transform="translate(${CARD_W / 2} 144)"><g clip-path="url(#ds-window)"><g filter="url(#ds-neon)">${CARDS[number].scene()}</g></g>`
+      + `<path d="M-70 -84L-62 -92H62L70 -84V84L62 92H-62L-70 84Z" fill="none" stroke="${secondary}" stroke-width="1" opacity="0.6"/></g>`,
   ].join('');
   return reversed ? `<g transform="rotate(180 ${CARD_W / 2} ${CARD_H / 2})">${body}</g>` : `<g>${body}</g>`;
 }
@@ -93,11 +105,25 @@ function cardSvg(number, reversed) {
   return document(CARD_W, CARD_H, cardGroup(number, reversed));
 }
 
-// The mark shown in the heading of the pull request comment: a crescent and a star.
+// The mark shown in the heading of the pull request comment: a crescent and a star, in neon.
 function iconSvg() {
-  return document(64, 64, `<rect width="64" height="64" rx="14" fill="${COLOR.night}"/>`
-    + `<path d="M40 10A23 23 0 1 0 54 44A19 19 0 1 1 40 10Z" fill="${COLOR.gold}"/>`
-    + `<polygon points="${points(8, 8, { inner: 3 }).join(' ')}" transform="translate(45 22)" fill="${COLOR.cream}"/>`);
+  return document(64, 64, `<defs>${NEON}</defs><rect width="64" height="64" rx="14" fill="${COLOR.night}"/>`
+    + `<g filter="url(#ds-neon)" fill="none" stroke-linejoin="round"><path d="M38 11A22 22 0 1 0 53 42A18 18 0 1 1 38 11Z" stroke="${COLOR.cyan}" stroke-width="3"/>`
+    + `<polygon points="${points(8, 8, { inner: 3 }).join(' ')}" transform="translate(45 21)" stroke="${COLOR.pink}" stroke-width="2"/></g>`);
+}
+
+// The whole deck on one sheet, for the README.
+function deckSvg(columns = 6) {
+  const gap = 14;
+  const rows = Math.ceil(DECK.length / columns);
+  const width = columns * (CARD_W + gap) + gap;
+  const height = rows * (CARD_H + gap) + gap;
+  const cards = DECK.map((_, number) => {
+    const inRow = Math.min(columns, DECK.length - Math.floor(number / columns) * columns);
+    const x = (width - inRow * (CARD_W + gap) + gap) / 2 + (number % columns) * (CARD_W + gap);
+    return `<g transform="translate(${x} ${gap + Math.floor(number / columns) * (CARD_H + gap)})">${cardGroup(number, false)}</g>`;
+  });
+  return document(width, height, `<rect width="${width}" height="${height}" fill="#05040c"/>${cards.join('')}`);
 }
 
 // Lines of a hexagram from its King Wen number, by searching the 64 line patterns.
@@ -110,8 +136,9 @@ function linesOf(number) {
 }
 
 function hexagramSvg(number) {
-  return document(120, 120, `<rect width="120" height="120" rx="12" fill="${COLOR.panel}" stroke="${COLOR.gold}" stroke-width="2"/>`
-    + `<g transform="translate(28 18)">${hexagramGroup(linesOf(number))}</g>`);
+  return document(120, 120, `<defs>${NEON}</defs><rect width="120" height="120" rx="8" fill="${COLOR.night}"/>`
+    + `<g filter="url(#ds-neon)"><path d="M14 5H106L115 14V106L106 115H14L5 106V14Z" fill="none" stroke="${COLOR.cyan}" stroke-width="2"/>`
+    + `<g transform="translate(28 18)">${hexagramGroup(linesOf(number))}</g></g>`);
 }
 
 // Planet and sign glyphs as stroked paths in a 24 by 24 box centred on the
@@ -180,18 +207,18 @@ function moonDisc(elongation, r) {
 function wheelGroup(reading, cx, cy, R) {
   const at = (lon, r) => [n(cx - r * Math.cos(lon * DEG)), n(cy + r * Math.sin(lon * DEG))];
   const band = R - 38;
-  const parts = [`<circle cx="${cx}" cy="${cy}" r="${R}" fill="${COLOR.panel}" stroke="${COLOR.gold}" stroke-width="2"/>`];
+  const parts = [`<circle cx="${cx}" cy="${cy}" r="${R}" fill="${COLOR.panel}" stroke="${COLOR.cyan}" stroke-width="2"/>`];
   for (let i = 0; i < 12; i++) {
     const [x1, y1] = at(i * 30, R);
     const [x2, y2] = at(i * 30 + 30, R);
     const [x3, y3] = at(i * 30 + 30, band);
     const [x4, y4] = at(i * 30, band);
     parts.push(`<path d="M${x1} ${y1}A${R} ${R} 0 0 0 ${x2} ${y2}L${x3} ${y3}A${band} ${band} 0 0 1 ${x4} ${y4}Z" fill="${ELEMENTS[i % 4]}" opacity="0.16"/>`);
-    parts.push(`<path d="M${x1} ${y1}L${x4} ${y4}" stroke="${COLOR.gold}" stroke-width="1" opacity="0.7"/>`);
+    parts.push(`<path d="M${x1} ${y1}L${x4} ${y4}" stroke="${COLOR.cyan}" stroke-width="1" opacity="0.7"/>`);
     const [gx, gy] = at(i * 30 + 15, R - 19);
     parts.push(glyph(SIGNS[i], gx, gy, 21, ELEMENTS[i % 4]));
   }
-  parts.push(`<circle cx="${cx}" cy="${cy}" r="${band}" fill="${COLOR.night}" stroke="${COLOR.gold}" stroke-width="1"/>`);
+  parts.push(`<circle cx="${cx}" cy="${cy}" r="${band}" fill="${COLOR.night}" stroke="${COLOR.cyan}" stroke-width="1"/>`);
 
   const glyphs = band - 30;
   const labels = spread(BODIES.map((body) => reading.positions[body].lon), 13);
@@ -227,13 +254,13 @@ function wheelGroup(reading, cx, cy, R) {
   return parts.join('');
 }
 
-const VERDICT_COLOR = { auspicious: COLOR.gold, tolerable: COLOR.cream, 'ill-omened': COLOR.bad };
+const VERDICT_COLOR = { auspicious: COLOR.good, tolerable: COLOR.gold, 'ill-omened': COLOR.bad };
 const signed = (delta) => (delta > 0 ? `+${delta}` : String(delta).replace('-', '−'));
 const clip = (content, length) => (content.length > length ? `${content.slice(0, length - 1).trimEnd()}…` : content);
 const stamp = (time) => `${new Date(time).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 
 function heading(x, y, content) {
-  return text(x, y, content.toUpperCase(), { size: 13, fill: COLOR.gold, anchor: 'start', spacing: 2.5 });
+  return text(x, y, content.toUpperCase(), { size: 13, fill: COLOR.cyan, anchor: 'start', spacing: 2.5 });
 }
 
 // The whole reading as one picture, 1000 by 836. It is shown scaled down in
@@ -245,13 +272,14 @@ function readingSvg(reading, window) {
   const edge = 28;
   const right = W - edge;
   const color = VERDICT_COLOR[reading.verdict];
-  const parts = [`<rect width="${W}" height="${H}" fill="${COLOR.night}"/>`];
+  const parts = [`<defs>${NEON}</defs><rect width="${W}" height="${H}" fill="${COLOR.night}"/>`];
+  const glow = (body) => `<g filter="url(#ds-neon)">${body}</g>`;
 
   // Verdict, score and the gauge with its pass mark.
   parts.push(text(edge, 34, `DEPLOYSCOPE · ${stamp(reading.time)} · ${String(reading.seed).slice(0, 12)}`,
     { size: 13, fill: COLOR.muted, anchor: 'start', spacing: 1 }));
-  parts.push(text(edge, 82, reading.verdict.toUpperCase(), { size: 40, fill: color, anchor: 'start', spacing: 4 }));
-  parts.push(text(right, 82, `${reading.score}/100`, { size: 40, fill: color, anchor: 'end' }));
+  parts.push(glow(text(edge, 82, reading.verdict.toUpperCase(), { size: 40, fill: color, anchor: 'start', spacing: 4 })
+    + text(right, 82, `${reading.score}/100`, { size: 40, fill: color, anchor: 'end' })));
   const gauge = right - edge;
   parts.push(`<rect x="${edge}" y="100" width="${gauge}" height="10" rx="5" fill="${COLOR.panel}"/>`);
   if (reading.score > 0) parts.push(`<rect x="${edge}" y="100" width="${n((gauge * reading.score) / 100)}" height="10" rx="5" fill="${color}"/>`);
@@ -264,7 +292,7 @@ function readingSvg(reading, window) {
   }
 
   // The sky: as a wheel, and as a table.
-  parts.push(wheelGroup(reading, 210, 348, 182));
+  parts.push(glow(wheelGroup(reading, 210, 348, 182)));
   const table = 418;
   parts.push(heading(table, 170, 'The sky now'));
   BODIES.forEach((body, i) => {
@@ -308,7 +336,7 @@ function readingSvg(reading, window) {
   const hex = 688;
   const { primary, relating, lines, changing } = reading.hexagram;
   parts.push(heading(hex, 596, 'The hexagram'));
-  parts.push(`<g transform="translate(${hex} 614)">${hexagramGroup(lines, changing)}</g>`);
+  parts.push(glow(`<g transform="translate(${hex} 614)">${hexagramGroup(lines, changing)}</g>`));
   parts.push(text(hex + 100, 640, `${primary.number} · ${clip(primary.name, 20)}`, { size: 16, anchor: 'start' }));
   parts.push(text(hex + 100, 662, relating ? `changing to ${relating.number} ·` : 'no changing lines', { size: 14, fill: COLOR.muted, anchor: 'start' }));
   if (relating) parts.push(text(hex + 100, 682, clip(relating.name, 24), { size: 14, fill: COLOR.muted, anchor: 'start' }));
@@ -324,4 +352,4 @@ function readingSvg(reading, window) {
   return document(W, H, parts.join(''));
 }
 
-module.exports = { cardSvg, hexagramSvg, iconSvg, readingSvg, linesOf, SIGNS };
+module.exports = { cardSvg, deckSvg, hexagramSvg, iconSvg, readingSvg, linesOf, SIGNS };

@@ -202,6 +202,9 @@ instant:
 **8. Tarot.** Three major arcana are drawn without replacement for Build
 (past), Deploy (present) and Production (future), upright or reversed, from
 SHA-256 of the seed.
+The cards are drawn in neon, each scene on its own:
+
+![The 22 major arcana](docs/deck.svg)
 
 **9. I Ching.** A hexagram is six binary lines, so it is the oracle native to
 the medium. It is cast by the three-coin method with one hash bit per coin:
@@ -289,7 +292,7 @@ Layout:
 - `src/omens.js`: rules, scoring, verdict, next-window forecast
 - `src/report.js`: log, annotations and job summary
 - `src/svg.js`: drawings; `scripts/build-assets.js` writes the static ones to `assets/`
-- `src/arcana.js`: the scene on each card, built from shared pieces (figure, sun, tower, wing, horse)
+- `src/arcana.js`: the 22 card scenes, each drawn on its own as neon line art
 - `src/comment.js`, `src/github.js`: the pull request comment and the API calls behind it
 - `src/main.js`: action entry point
 

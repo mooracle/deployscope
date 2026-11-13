@@ -6,7 +6,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { cardSvg, hexagramSvg, iconSvg } = require('../src/svg');
+const { cardSvg, deckSvg, hexagramSvg, iconSvg } = require('../src/svg');
 const { DECK } = require('../src/tarot');
 
 function assets() {
@@ -25,6 +25,8 @@ if (require.main === module) {
     fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
     fs.writeFileSync(path.join(root, name), content);
   }
+  // The deck on one sheet, shown in the README.
+  fs.writeFileSync(path.join(__dirname, '..', 'docs', 'deck.svg'), deckSvg());
 }
 
 module.exports = { assets };
