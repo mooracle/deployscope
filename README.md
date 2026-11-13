@@ -202,7 +202,14 @@ instant:
 **8. Tarot.** Three major arcana are drawn without replacement for Build
 (past), Deploy (present) and Production (future), upright or reversed, from
 SHA-256 of the seed.
-The cards are drawn in neon, each scene on its own:
+Each card is drawn as what it means in software delivery, not as the medieval
+scene: the Fool jumps the gap where staging should be, the Lovers are a model
+and its GPU, Justice weighs code against tests, the Moon is a build that is
+green in CI and red in its reflection. A reversed card is the same card with
+its meaning blocked or turned inside out: its picture lies upside down, as on
+the table, while the frame stays readable, is marked `REVERSED`, and carries
+the reversed meaning as its caption (the Star reversed reads "dashboards are
+dark", the Lovers reversed "CUDA out of memory").
 
 ![The 22 major arcana](docs/deck.svg)
 

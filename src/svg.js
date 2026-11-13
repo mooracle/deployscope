@@ -51,19 +51,15 @@ const NEON = '<filter id="ds-neon" x="-30%" y="-30%" width="160%" height="160%" 
   + '<feMerge><feMergeNode in="wide"/><feMergeNode in="wide"/><feMergeNode in="near"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
   + '<clipPath id="ds-window"><path d="M-70 -84L-62 -92H62L70 -84V84L62 92H-62L-70 84Z"/></clipPath>';
 
-// A card as a group at the origin, CARD_W by CARD_H. A reversed card is drawn upside down.
+// A card as a group at the origin, CARD_W by CARD_H. A reversed card has its picture turned
+// upside down, as it would lie on the table, but its frame and lettering stay readable and
+// its caption gives the reversed meaning.
 // Every card carries the same definitions, so several cards can share one document.
 function cardGroup(number, reversed) {
   const [primary, secondary] = CARDS[number].colors;
   const name = DECK[number].name.toUpperCase();
   const mono = (x, y, content, size, fill, anchor, spacing) => `<text x="${x}" y="${y}" font-family="${MONO}" font-size="${size}" `
     + `font-weight="bold" fill="${fill}" text-anchor="${anchor}" letter-spacing="${spacing}">${esc(content)}</text>`;
-  let ticks = '';
-  for (let i = 0, x = 24; x < 156; i++) {
-    const width = 1 + ((number * 7 + i * 5) % 4);
-    ticks += `<rect x="${x}" y="276" width="${width}" height="7" fill="${secondary}"/>`;
-    x += width + 2 + ((number + i) % 3);
-  }
   const body = [
     `<defs>${NEON}</defs>`,
     `<rect width="${CARD_W}" height="${CARD_H}" rx="10" fill="${ARCANA_BACK}"/>`,
@@ -71,14 +67,15 @@ function cardGroup(number, reversed) {
     `<path d="M18 5H162L175 18V282L162 295H18L5 282V18Z" fill="none" stroke="${primary}" stroke-width="2"/>`,
     `<path d="M12 60V24L24 12H60M168 240V276L156 288H120" fill="none" stroke="${secondary}" stroke-width="1.5"/>`,
     mono(22, 37, ROMAN[number], 19, primary, 'start', 2),
-    mono(158, 36, `0x${number.toString(16).toUpperCase().padStart(2, '0')}`, 10, secondary, 'end', 1),
-    mono(CARD_W / 2, 265, name, name.length > 14 ? 11 : 13, '#f4f7ff', 'middle', name.length > 14 ? 1 : 2),
+    reversed ? mono(158, 36, 'REVERSED', 9, COLOR.cream, 'end', 1)
+      : mono(158, 36, `0x${number.toString(16).toUpperCase().padStart(2, '0')}`, 10, secondary, 'end', 1),
+    mono(CARD_W / 2, 263, name, name.length > 14 ? 11 : 13, '#f4f7ff', 'middle', name.length > 14 ? 1 : 2),
     `</g>`,
-    `<g opacity="0.7">${ticks}</g>`,
-    `<g transform="translate(${CARD_W / 2} 144)"><g clip-path="url(#ds-window)"><g filter="url(#ds-neon)">${CARDS[number].scene()}</g></g>`
+    mono(CARD_W / 2, 281, `// ${reversed ? CARDS[number].reversed : CARDS[number].caption}`, 9, secondary, 'middle', 0.5),
+    `<g transform="translate(${CARD_W / 2} 144)"><g clip-path="url(#ds-window)"><g filter="url(#ds-neon)"${reversed ? ' transform="rotate(180)"' : ''}>${CARDS[number].scene()}</g></g>`
       + `<path d="M-70 -84L-62 -92H62L70 -84V84L62 92H-62L-70 84Z" fill="none" stroke="${secondary}" stroke-width="1" opacity="0.6"/></g>`,
   ].join('');
-  return reversed ? `<g transform="rotate(180 ${CARD_W / 2} ${CARD_H / 2})">${body}</g>` : `<g>${body}</g>`;
+  return `<g>${body}</g>`;
 }
 
 // Six lines, bottom line last. `changing` marks old lines: ○ for yang, × for yin.
