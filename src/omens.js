@@ -1,6 +1,6 @@
 'use strict';
 
-const { BODIES, angleDiff, sky, moonElongation, moonVoidOfCourse } = require('./ephemeris');
+const { BODIES, angleDiff, sky, speed, moonElongation, moonVoidOfCourse } = require('./ephemeris');
 const tarot = require('./tarot');
 const iching = require('./iching');
 const numerology = require('./numerology');
@@ -62,9 +62,17 @@ const DAYS = {
   Tuesday: ['Mars', 3, 'A day for decisive action.'],
   Wednesday: ['Mercury', 5, 'Messages arrive and packets route.'],
   Thursday: ['Jupiter', 6, 'The most fortunate day of the week to ship.'],
-  Friday: ['Venus', -15, 'Venus wants you to have a weekend. Do not deploy on Friday.'],
-  Saturday: ['Saturn', -10, 'The lord of restriction watches. On-call will remember this.'],
-  Sunday: ['Sun', -10, 'A day of rest. Nobody is around to roll it back.'],
+  Friday: ['Venus', 3, 'Venus favours what pleases: a good day for the UI.'],
+  Saturday: ['Saturn', 2, 'Saturn favours what must last: migrations and hardening.'],
+  Sunday: ['Sun', 3, 'The Sun favours what should be seen: launches.'],
+};
+
+// The planets have nothing against these days; the elders of operations do.
+// Custom, not astrology: [code, delta, title, message].
+const CUSTOMS = {
+  Friday: ['OMEN031', -15, 'Read-only Friday', 'No planet forbids a Friday deploy; the elders of operations do. Whoever ships today owns the weekend.'],
+  Saturday: ['OMEN032', -10, 'Weekend deploy', 'It is the weekend. Nobody is around to roll it back.'],
+  Sunday: ['OMEN032', -10, 'Weekend deploy', 'It is the weekend. Nobody is around to roll it back.'],
 };
 
 function severityOf(delta, errorAt = -12) {
@@ -72,12 +80,24 @@ function severityOf(delta, errorAt = -12) {
   return delta < 0 ? 'warning' : 'notice';
 }
 
-function retrogradeOmens(positions) {
+// A station is the turning point of a retrograde and its most intense moment.
+// Which way Mercury is turning shows in whether its speed is rising or falling.
+function mercuryStation(time) {
+  const day = 86400000;
+  return speed('Mercury', time + day / 2) > speed('Mercury', time - day / 2) ? 'direct' : 'retrograde';
+}
+
+function retrogradeOmens(positions, time) {
   const omens = [];
   const mercury = positions.Mercury;
-  if (mercury.stationary) {
-    omens.push({ code: 'OMEN003', severity: 'warning', delta: -10, title: 'Mercury is stationary',
-      message: 'Mercury stands still in the sky. Expect hangs, timeouts and jobs stuck in "queued".' });
+  if (mercury.stationary && mercuryStation(time) === 'retrograde') {
+    omens.push({ code: 'OMEN003', severity: 'error', delta: -30, title: 'Mercury is stationing retrograde',
+      message: `Mercury (${DOMAINS.Mercury}) stands still in ${mercury.sign}, turning retrograde: the most intense moment of the cycle. `
+        + 'Expect hangs, timeouts and jobs stuck in "queued".' });
+  } else if (mercury.stationary) {
+    omens.push({ code: 'OMEN003', severity: 'error', delta: -15, title: 'Mercury is stationing direct',
+      message: `Mercury (${DOMAINS.Mercury}) stands still in ${mercury.sign}, turning direct. The retrograde is ending, `
+        + 'but nothing moves yet: let the queues drain before you add to them.' });
   } else if (mercury.retrograde) {
     omens.push({ code: 'OMEN001', severity: 'error', delta: -25, title: 'Mercury is retrograde',
       message: `Mercury rules ${DOMAINS.Mercury}, and it is moving backwards through ${mercury.sign}. `
@@ -110,6 +130,8 @@ function findAspects(positions) {
     for (let j = i + 1; j < BODIES.length; j++) {
       const [a, b] = [BODIES[i], BODIES[j]];
       if (SLOW.includes(a) && SLOW.includes(b)) continue;
+      // The Sun-Moon aspects are the lunar phase, which is judged on its own.
+      if (a === 'Sun' && b === 'Moon') continue;
       const separation = Math.abs(angleDiff(positions[a].lon, positions[b].lon));
       const aspect = ASPECTS.find((x) => Math.abs(separation - x.angle) <= ORB);
       if (!aspect) continue;
@@ -127,8 +149,8 @@ function aspectOmens(aspects) {
 
 function moonOmen(elongation) {
   const phases = [
-    ['New Moon', 8, 'A blank sky favours first deploys and greenfield services.'],
-    ['Waxing Crescent', 4, 'Growing light favours shipping features.'],
+    ['New Moon', -6, 'The Moon is dark and hidden in the Sun\'s rays. Nothing is begun under a dark Moon; wait for the first crescent.'],
+    ['Waxing Crescent', 7, 'The first light after the dark is the best time to begin something.'],
     ['First Quarter', 4, 'Growing light favours shipping features.'],
     ['Waxing Gibbous', 4, 'Growing light favours shipping features.'],
     ['Full Moon', -10, 'Incident rates are elevated and on-call engineers grow restless.'],
@@ -150,13 +172,17 @@ function localDay(time, timezone) {
 function dayOmens(time, timezone, positions) {
   const { weekday, dayOfMonth } = localDay(time, timezone);
   let [ruler, delta, message] = DAYS[weekday];
-  if (weekday === 'Wednesday' && positions.Mercury.retrograde) {
+  if (positions[ruler].retrograde || positions[ruler].stationary) {
     delta = -5;
-    message = 'Mercury rules today and Mercury is retrograde: the day works against you.';
+    message = `${ruler} rules today and ${ruler} is ${positions[ruler].stationary ? 'stationary' : 'retrograde'}: the day works against you.`;
   }
   const omens = [{ code: 'OMEN030', severity: severityOf(delta, -Infinity), delta,
     title: `${weekday}, day of ${ruler === 'Sun' || ruler === 'Moon' ? `the ${ruler}` : ruler}`,
     message: `${weekday} is ruled by ${ruler === 'Sun' || ruler === 'Moon' ? `the ${ruler}` : ruler}. ${message}` }];
+  if (CUSTOMS[weekday]) {
+    const [code, customDelta, title, customMessage] = CUSTOMS[weekday];
+    omens.push({ code, severity: severityOf(customDelta), delta: customDelta, title, message: customMessage });
+  }
   if (weekday === 'Friday' && dayOfMonth === 13) {
     omens.push({ code: 'OMEN013', severity: 'error', delta: -13, title: 'Friday the 13th',
       message: 'It is Friday the 13th. No further astronomical justification is required.' });
@@ -224,17 +250,33 @@ function returnOmens(positions, natal) {
   return omens;
 }
 
+// How much the present and the future hexagram weigh, by the number of
+// changing lines, after Zhu Xi: few changes and the present governs, three and
+// the two are read together, more and the future governs.
+const CHANGING = {
+  1: [1, 0.25, 'the present hexagram governs'],
+  2: [1, 0.25, 'the present hexagram governs'],
+  3: [0.75, 0.75, 'the two hexagrams are read together'],
+  4: [0.25, 1, 'the future hexagram governs'],
+  5: [0.25, 1, 'the future hexagram governs'],
+  6: [0, 1, 'the present hexagram has turned over completely'],
+};
+const NUMERALS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'];
+
 function hexagramOmens(casting) {
   const { primary, relating } = casting;
   const omens = [{ code: `OMEN3${String(primary.number).padStart(2, '0')}`, severity: severityOf(primary.delta), delta: primary.delta,
     title: `Hexagram ${primary.number}: ${primary.name}`,
     message: `Hexagram ${primary.number}, ${primary.name}. ${primary.reading}` }];
   if (relating) {
-    // Where things are heading counts for half of where they are.
-    const delta = Math.trunc(relating.delta / 2);
+    const count = casting.changing.filter(Boolean).length;
+    const [present, future, rule] = CHANGING[count];
+    omens[0].delta = Math.trunc(primary.delta * present);
+    omens[0].severity = severityOf(omens[0].delta);
+    const delta = Math.trunc(relating.delta * future);
     omens.push({ code: `OMEN3${String(relating.number).padStart(2, '0')}`, severity: severityOf(delta), delta,
       title: `Changing to hexagram ${relating.number}: ${relating.name}`,
-      message: `The lines change towards hexagram ${relating.number}, ${relating.name}. ${relating.reading}` });
+      message: `${count === 1 ? 'One line changes' : `${NUMERALS[count]} lines change`} towards hexagram ${relating.number}, ${relating.name}: ${rule}. ${relating.reading}` });
   }
   return omens;
 }
@@ -268,7 +310,7 @@ function divine({ time, seed, timezone = 'UTC', failBelow = 25, born, version })
   const release = numerology.read(version);
   const aspects = findAspects(positions);
   const omens = [
-    ...retrogradeOmens(positions),
+    ...retrogradeOmens(positions, time),
     ...dayOmens(time, timezone, positions),
     moon.omen,
     ...voidOmens(voidOfCourse),

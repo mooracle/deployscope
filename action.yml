@@ -28,10 +28,10 @@ inputs:
     description: Report the omens but never fail the job.
     default: 'false'
   comment:
-    description: On pull requests, post the reading as a comment (one comment, updated on every run). Needs "pull-requests: write".
+    description: 'On pull requests, post the reading as a comment (one comment, updated on every run). Needs "pull-requests: write".'
     default: 'true'
   publish-branch:
-    description: Branch to commit the reading's SVG to, so the chart wheel can be shown in the comment. Needs "contents: write". Empty disables it.
+    description: 'Branch to commit the SVG of the reading to, so the chart wheel can be shown in the comment. Needs "contents: write". Empty disables it.'
     default: ''
   github-token:
     description: Token used for the comment and for publishing.
@@ -47,7 +47,7 @@ outputs:
   hexagram:
     description: The hexagram cast, and the one it changes to if any line changes.
   mercury-retrograde:
-    description: true when Mercury is retrograde.
+    description: true while Mercury moves backwards, stations included.
   moon-phase:
     description: Current phase of the Moon.
   moon-void:

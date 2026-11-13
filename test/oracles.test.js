@@ -155,3 +155,30 @@ test('a refused deployment is told when to come back', () => {
   const expected = new Date(nextWindow({ time: at(iso), seed }).time).toISOString().slice(0, 16).replace('T', ' ');
   assert.ok(result.stdout.includes(`The next favourable window opens around ${expected} UTC`), result.stdout.split('\n').pop());
 });
+
+test('the more lines change, the more the future hexagram weighs', () => {
+  const time = Date.parse('2026-07-09T12:00Z');
+  const hexagrams = (seed) => {
+    const reading = divine({ time, seed });
+    return { casting: reading.hexagram, omens: reading.omens.filter((o) => o.code.startsWith('OMEN3')) };
+  };
+  // Seeds found by search: 'k4' changes one line, 'k0' three, 'k92' four.
+  const one = hexagrams('k4');
+  assert.equal(one.casting.changing.filter(Boolean).length, 1);
+  assert.deepEqual(one.omens.map((o) => o.delta), [one.casting.primary.delta, Math.trunc(one.casting.relating.delta / 4)]);
+  const three = hexagrams('k0');
+  assert.equal(three.casting.changing.filter(Boolean).length, 3);
+  assert.deepEqual(three.omens.map((o) => o.delta),
+    [Math.trunc(three.casting.primary.delta * 0.75), Math.trunc(three.casting.relating.delta * 0.75)]);
+  const four = hexagrams('k92');
+  assert.equal(four.casting.changing.filter(Boolean).length, 4);
+  assert.deepEqual(four.omens.map((o) => o.delta), [Math.trunc(four.casting.primary.delta / 4), four.casting.relating.delta]);
+});
+
+test('hexagrams whose judgment is to cross the great water favour the deploy', () => {
+  const { HEXAGRAMS } = iching;
+  // 5 Waiting, 13 Fellowship, 18 Work on the Decayed, 26 Great Taming, 42 Increase, 59 Dispersion, 61 Inner Truth.
+  for (const number of [5, 13, 18, 26, 42, 59, 61]) assert.ok(HEXAGRAMS[number - 1][1] > 0, `hexagram ${number}`);
+  // 6 Conflict: "it does not further one to cross the great water".
+  assert.ok(HEXAGRAMS[5][1] < 0);
+});

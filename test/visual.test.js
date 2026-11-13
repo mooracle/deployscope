@@ -213,3 +213,12 @@ test('on a pull request the action draws the reading, publishes it and comments'
     fs.rmSync(temp, { recursive: true, force: true });
   }
 });
+
+test('action.yml has no plain value that YAML would read as a nested mapping', () => {
+  const lines = fs.readFileSync(path.join(__dirname, '..', 'action.yml'), 'utf8').split('\n');
+  for (const [index, line] of lines.entries()) {
+    const value = (line.match(/^\s*[\w-]+:\s+(.*)$/) || [])[1];
+    if (!value || /^['"|>]/.test(value)) continue;
+    assert.ok(!/: | #/.test(value), `action.yml line ${index + 1} needs quoting`);
+  }
+});

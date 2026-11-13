@@ -108,3 +108,42 @@ test('bad inputs are a configuration error, not a prophecy', () => {
     assert.match(result.stdout, /::error title=OMEN400/);
   }
 });
+
+test('a Mercury station is told apart by which way Mercury is turning', () => {
+  const station = (iso) => divine({ time: at(iso), seed: 'x' }).omens.find((o) => o.code === 'OMEN003');
+  // Mercury stationed retrograde on 2026-10-24 and direct on 2026-11-13.
+  assert.equal(station('2026-10-24T08:00Z').title, 'Mercury is stationing retrograde');
+  assert.equal(station('2026-11-13T12:00Z').title, 'Mercury is stationing direct');
+  assert.ok(station('2026-10-24T08:00Z').delta < station('2026-11-13T12:00Z').delta);
+  // Mid-retrograde is neither, and the station weighs more than the retrograde itself.
+  const middle = divine({ time: at('2026-11-03T12:00Z'), seed: 'x' });
+  assert.ok(!codes(middle).includes('OMEN003'));
+  assert.ok(station('2026-10-24T08:00Z').delta < middle.omens.find((o) => o.code === 'OMEN001').delta);
+});
+
+test('the dark Moon is against beginnings and the first crescent is for them', () => {
+  const moon = (iso) => divine({ time: at(iso), seed: 'x' }).omens.find((o) => o.code === 'OMEN010');
+  // New Moon (a solar eclipse) on 2026-08-12 at 17:37 UTC.
+  assert.equal(moon('2026-08-12T17:00Z').title, 'New Moon');
+  assert.ok(moon('2026-08-12T17:00Z').delta < 0);
+  assert.equal(moon('2026-08-16T12:00Z').title, 'Waxing Crescent');
+  assert.ok(moon('2026-08-16T12:00Z').delta > 0);
+});
+
+test('the lunar phase is not counted again as a Sun-Moon aspect', () => {
+  for (const iso of ['2026-08-12T17:00Z', '2026-08-28T04:00Z', '2026-08-20T03:00Z']) {
+    const reading = divine({ time: at(iso), seed: 'x' });
+    assert.ok(!reading.aspects.some((a) => a.a === 'Sun' && a.b === 'Moon'), iso);
+  }
+});
+
+test('Friday is held against the deploy by custom, not by Venus', () => {
+  const friday = divine({ time: at('2026-07-10T12:00Z'), seed: 'x' });
+  assert.ok(friday.omens.find((o) => o.code === 'OMEN030').delta > 0);
+  assert.equal(friday.omens.find((o) => o.code === 'OMEN031').title, 'Read-only Friday');
+  // With Venus retrograde, as on 2026-11-13, her day turns against you as well.
+  const retrograde = divine({ time: at('2026-11-13T12:00Z'), seed: 'x' });
+  assert.ok(retrograde.positions.Venus.retrograde);
+  assert.ok(retrograde.omens.find((o) => o.code === 'OMEN030').delta < 0);
+  assert.ok(!codes(divine({ time: at('2026-07-09T12:00Z'), seed: 'x' })).some((c) => c === 'OMEN031' || c === 'OMEN032'));
+});

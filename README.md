@@ -16,9 +16,12 @@ Error: OMEN011 The Moon is void of course
   The Moon makes no further aspect before it enters Gemini around 2026-07-10
   23:00 UTC. Nothing begun under a void Moon comes to anything: the deploy will
   succeed and change nothing, or be rolled back. (-12)
+Error: OMEN031 Read-only Friday
+  No planet forbids a Friday deploy; the elders of operations do. Whoever ships
+  today owns the weekend. (-15)
 Error: OMEN500 Verdict
-  ILL-OMENED: the heavens advise against this deployment (score 0/100, required 25).
-  The next favourable window opens around 2026-07-12 21:00 UTC (score 25).
+  ILL-OMENED: the heavens advise against this deployment (score 1/100, required 25).
+  The next favourable window opens around 2026-07-13 00:00 UTC (score 27).
   Re-running before then will not help: the cards and the hexagram are bound to
   the commit.
 ```
@@ -85,7 +88,7 @@ explicitly there, or the natal chart is skipped.
 | `score` | 0-100 |
 | `cards` | the three cards drawn |
 | `hexagram` | the hexagram cast, and the one it changes to |
-| `mercury-retrograde` | `true` or `false` |
+| `mercury-retrograde` | `true` while Mercury moves backwards, stations included |
 | `moon-phase` | current lunar phase |
 | `moon-void` | `true` when the Moon is void of course |
 | `sun-sign` | the repository's Sun sign |
@@ -133,7 +136,10 @@ than the interpretation deserves. No network, no dependencies.
 
 **2. Retrograde is a sign change in a derivative.** A planet is retrograde when
 its geocentric longitude is decreasing (central difference over one day).
-Mercury moving slower than 0.2°/day is "stationary".
+Mercury moving slower than 0.2°/day is "stationary": the turning point of the
+cycle and its most intense moment. Stationing retrograde (speed still falling)
+is the worst case (-30, against -25 mid-retrograde); stationing direct (speed
+rising) is the mildest (-15), since the retrograde is ending.
 
 **3. Doctrine of correspondences.** Each body governs a part of the pipeline:
 
@@ -154,12 +160,18 @@ are in aspect. Sextiles and trines are harmonious (+4, +6 with a benefic:
 Venus, Jupiter). Squares and oppositions are hard (-4, -7 with a malefic: Mars,
 Saturn, Uranus). Conjunctions take the nature of the planets involved. Aspects
 between two slow planets (Jupiter and beyond) last for months and are ignored,
-since they are nobody's deploy's fault.
+since they are nobody's deploy's fault. Sun-Moon aspects are the lunar phase
+and are judged there, not twice.
 
-**5. Time.** Each weekday has its classical planetary ruler; Thursday (Jupiter)
-is best, Friday (Venus) carries the traditional no-deploy penalty. The lunar
-phase is the Sun-Moon elongation: new and waxing favour shipping, full moon
-raises incident risk, waning favours deleting code.
+**5. Time.** Each weekday has its classical planetary ruler and takes its
+character from it; Thursday (Jupiter) is best. A day whose ruler is retrograde
+or stationary works against you. Friday belongs to Venus, a benefic, so the
+no-deploy rule is not hers: it is scored separately as operational custom
+(`OMEN031`, and `OMEN032` for the weekend). The lunar phase is the Sun-Moon
+elongation. As in electional astrology, the dark Moon is against beginnings
+(-6), the first crescent after it is the best time to start something (+7),
+the rest of the waxing Moon favours shipping, full moon raises incident risk,
+and the waning Moon favours deleting code.
 
 **6. Void-of-course Moon.** From electional astrology, the branch concerned
 with choosing when to begin things. The Moon is void when it will complete no
@@ -191,8 +203,14 @@ SHA-256 of the seed.
 the medium. It is cast by the three-coin method with one hash bit per coin:
 each line comes out 6, 7, 8 or 9 with the traditional odds of 1:3:3:1. Lines of
 6 and 9 are "old" and change into their opposite, giving a second hexagram for
-where the situation is heading, which counts for half. Hexagrams are looked up
-by trigram pair in the King Wen sequence.
+where the situation is heading. How much each weighs follows the number of
+changing lines, after Zhu Xi: with one or two the present hexagram governs
+(the future counts a quarter), with three the two are read together (three
+quarters each), with four or five the future governs (the present counts a
+quarter), with six the present has turned over completely. Hexagrams are
+looked up by trigram pair in the King Wen sequence, and scored by their
+judgment: "it furthers one to cross the great water", the classical phrase for
+a large undertaking, is read as leave to deploy.
 
 **10. Numerology, for tagged releases.** The digits of the version are summed
 and reduced to a single digit, except for the master numbers 11, 22 and 33:
@@ -216,8 +234,9 @@ again for every hour of the next 14 days, and the first hour that passes is
 reported in the error and in the `next-window` output.
 
 In simulation with the defaults (natal chart on, no release tag), 8.8% of
-deployments are refused in 2026, 12.3% in 2027 and 7.3% in 2028; about 20% are
-auspicious and the rest tolerable. Some years are simply worse than others.
+deployments are refused in 2026, 13.6% in 2027, 7.8% in 2028 and 9.6% in 2029;
+about 18% are auspicious and the rest tolerable. Some years are simply worse
+than others.
 
 ### Error codes
 
@@ -225,12 +244,14 @@ auspicious and the rest tolerable. Some years are simply worse than others.
 | --- | --- |
 | `OMEN001` | Mercury retrograde (-25) |
 | `OMEN002` | Another planet retrograde |
-| `OMEN003` | Mercury stationary |
+| `OMEN003` | Mercury stationing retrograde (-30) or direct (-15) |
 | `OMEN010` | Lunar phase |
 | `OMEN011` | Moon void of course (-12) |
 | `OMEN013` | Friday the 13th |
 | `OMEN020` | Planetary aspect |
 | `OMEN030` | Planetary ruler of the weekday |
+| `OMEN031` | Read-only Friday (custom, not astrology) |
+| `OMEN032` | Weekend deploy (custom, not astrology) |
 | `OMEN040` | Transit to the natal chart |
 | `OMEN041` | Solar return |
 | `OMEN042` | Lunar return |
