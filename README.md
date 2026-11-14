@@ -356,3 +356,9 @@ Layout:
 
 Not a substitute for tests, staging, or a rollback plan. Planets do not read
 your changelog.
+
+## Who made this
+
+[Mooracle](https://mooracle.io/?utm_source=github&utm_medium=readme&utm_campaign=deployscope).
+On working days we review architecture and codebases for founders and
+investors, by methods with a somewhat better track record than this one.
