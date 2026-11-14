@@ -25,8 +25,10 @@ if (require.main === module) {
     fs.mkdirSync(path.dirname(path.join(root, name)), { recursive: true });
     fs.writeFileSync(path.join(root, name), content);
   }
-  // The deck on one sheet, shown in the README.
+  // The major arcana on one sheet, shown in the README.
   fs.writeFileSync(path.join(__dirname, '..', 'docs', 'deck.svg'), deckSvg());
+  // The minor arcana, one suit to a row.
+  fs.writeFileSync(path.join(__dirname, '..', 'docs', 'minors.svg'), deckSvg(14, 22, 56));
 }
 
 module.exports = { assets };

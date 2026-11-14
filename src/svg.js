@@ -5,7 +5,7 @@
 // glow, so the files render anywhere an <img> does.
 
 const { BODIES, SIGNS } = require('./ephemeris');
-const { DECK } = require('./tarot');
+const { DECK, MAJORS } = require('./tarot');
 const { hexagram: lookupHexagram } = require('./iching');
 const { CARDS, BACK: ARCANA_BACK } = require('./arcana');
 
@@ -16,6 +16,7 @@ const ELEMENTS = ['#ff4d6d', '#5dff9b', '#ffe45c', '#22e6ff']; // fire, earth, a
 const SERIF = "Georgia, 'Times New Roman', serif";
 const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV',
   'XVI', 'XVII', 'XVIII', 'XIX', 'XX', 'XXI'];
+const RANK = ['ACE', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'PAGE', 'KNIGHT', 'QUEEN', 'KING'];
 
 const CARD_W = 180;
 const CARD_H = 300;
@@ -69,7 +70,7 @@ function cardGroup(number, reversed) {
     `<g filter="url(#ds-neon)">`,
     `<path d="M18 5H162L175 18V282L162 295H18L5 282V18Z" fill="none" stroke="${primary}" stroke-width="2"/>`,
     `<path d="M12 60V24L24 12H60M168 240V276L156 288H120" fill="none" stroke="${reversed ? COLOR.bad : secondary}" stroke-width="1.5"/>`,
-    mono(22, 37, ROMAN[number], 19, primary, 'start', 2),
+    mono(22, 37, number < MAJORS ? ROMAN[number] : RANK[DECK[number].rank], 19, primary, 'start', 2),
     // The tag is the card's number as a byte; reversed, every bit of it is flipped (0x11 becomes 0xEE).
     reversed ? mono(158, 32, hexByte(~number & 0xff), 10, COLOR.bad, 'end', 1) + mono(158, 43, 'REVERSED', 6.5, COLOR.bad, 'end', 1)
       : mono(158, 36, hexByte(number), 10, secondary, 'end', 1),
@@ -112,16 +113,16 @@ function iconSvg() {
     + `<polygon points="${points(8, 8, { inner: 3 }).join(' ')}" transform="translate(45 21)" stroke="${COLOR.pink}" stroke-width="2"/></g>`);
 }
 
-// The whole deck on one sheet, for the README.
-function deckSvg(columns = 6) {
+// A run of the deck on one sheet, for the README: the major arcana by default.
+function deckSvg(columns = 6, from = 0, count = MAJORS) {
   const gap = 14;
-  const rows = Math.ceil(DECK.length / columns);
+  const rows = Math.ceil(count / columns);
   const width = columns * (CARD_W + gap) + gap;
   const height = rows * (CARD_H + gap) + gap;
-  const cards = DECK.map((_, number) => {
-    const inRow = Math.min(columns, DECK.length - Math.floor(number / columns) * columns);
-    const x = (width - inRow * (CARD_W + gap) + gap) / 2 + (number % columns) * (CARD_W + gap);
-    return `<g transform="translate(${x} ${gap + Math.floor(number / columns) * (CARD_H + gap)})">${cardGroup(number, false)}</g>`;
+  const cards = Array.from({ length: count }, (_, i) => {
+    const inRow = Math.min(columns, count - Math.floor(i / columns) * columns);
+    const x = (width - inRow * (CARD_W + gap) + gap) / 2 + (i % columns) * (CARD_W + gap);
+    return `<g transform="translate(${x} ${gap + Math.floor(i / columns) * (CARD_H + gap)})">${cardGroup(from + i, false)}</g>`;
   });
   return document(width, height, `<rect width="${width}" height="${height}" fill="#05040c"/>${cards.join('')}`);
 }
@@ -155,6 +156,7 @@ const GLYPHS = {
   Saturn: '<path d="M-4 -10.5V8M-8 -6H1M-4 -1C-1 -5 5 -4 5 1C5 5 2 6 3 9C3.5 10.5 5.5 10.5 7 9"/>',
   Uranus: '<path d="M-7.5 -10.5V0M7.5 -10.5V0M-7.5 -5H7.5M0 -10.5V3.5"/><circle cy="7.2" r="3.5"/>',
   Neptune: '<path d="M-7.5 -10C-7.5 1 7.5 1 7.5 -10M0 -10.5V11M-4.5 6H4.5"/>',
+  Pluto: '<path d="M-5 10.5V-10.5H0.5C8 -10.5 8 -0.5 0.5 -0.5H-5M-5 10.5H7"/>',
   Aries: '<path d="M0 10.5V-3C0 -12 -10 -10 -8.5 -3.5M0 -3C0 -12 10 -10 8.5 -3.5"/>',
   Taurus: '<circle cy="4" r="6"/><path d="M-8.5 -10.5C-6 -2 6 -2 8.5 -10.5"/>',
   Gemini: '<path d="M-8 -10C-3 -7.5 3 -7.5 8 -10M-8 10C-3 7.5 3 7.5 8 10M-3.5 -8V8M3.5 -8V8"/>',
@@ -247,7 +249,7 @@ function wheelGroup(reading, cx, cy, R) {
     let stroke = COLOR.muted;
     if (aspect.delta > 0) stroke = COLOR.good;
     else if (aspect.delta < 0) stroke = COLOR.bad;
-    parts.push(`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${stroke}" stroke-width="2" opacity="${n(1 - aspect.orb / 8)}"/>`);
+    parts.push(`<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${stroke}" stroke-width="2" opacity="${n(1 - aspect.orb / 12)}"/>`);
   }
   const elongation = (((reading.positions.Moon.lon - reading.positions.Sun.lon) % 360) + 360) % 360;
   parts.push(`<g transform="translate(${cx} ${cy})">${moonDisc(elongation, 22)}</g>`);
@@ -297,7 +299,7 @@ function readingSvg(reading, window) {
   parts.push(heading(table, 170, 'The sky now'));
   BODIES.forEach((body, i) => {
     const p = reading.positions[body];
-    const y = 204 + i * 34;
+    const y = 202 + i * 32;
     const tone = p.retrograde ? COLOR.bad : COLOR.cream;
     parts.push(glyph(body, table + 11, y - 6, 22, tone));
     parts.push(text(table + 34, y, body, { size: 16, fill: tone, anchor: 'start' }));
@@ -309,8 +311,8 @@ function readingSvg(reading, window) {
   // The omens that weigh most.
   const list = 704;
   parts.push(heading(list, 170, 'Weightiest omens'));
-  [...reading.omens].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 9).forEach((omen, i) => {
-    const y = 204 + i * 34;
+  [...reading.omens].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 10).forEach((omen, i) => {
+    const y = 202 + i * 32;
     parts.push(text(list + 30, y, signed(omen.delta), { size: 16, fill: omen.delta < 0 ? COLOR.bad : COLOR.good, anchor: 'end' }));
     parts.push(text(list + 40, y, clip(omen.code.startsWith('OMEN1') ? omen.title.replace(/^.*?: /, '') : omen.title, 32), { size: 14, anchor: 'start' }));
   });
@@ -328,8 +330,8 @@ function readingSvg(reading, window) {
   reading.cards.forEach((card, i) => {
     const y = 650 + i * 56;
     parts.push(text(cardText, y, card.position, { size: 13, fill: COLOR.muted, anchor: 'start' }));
-    parts.push(text(cardText, y + 20, clip(`${card.name}${card.reversed ? ', reversed' : ''}`, 26), { size: 16, anchor: 'start' }));
-    parts.push(text(cardText + 222, y + 20, signed(card.delta), { size: 16, fill: card.delta < 0 ? COLOR.bad : COLOR.good, anchor: 'end' }));
+    parts.push(text(cardText, y + 20, clip(`${card.name}${card.reversed ? ', reversed' : ''}`, 30), { size: 16, anchor: 'start' }));
+    parts.push(text(cardText + 252, y + 20, signed(card.delta), { size: 16, fill: card.delta < 0 ? COLOR.bad : COLOR.good, anchor: 'end' }));
   });
 
   // The hexagram, and the one it changes to.
@@ -343,7 +345,7 @@ function readingSvg(reading, window) {
 
   // What the reading was personal to.
   const notes = [`Moon: ${reading.moonPhase}${reading.voidOfCourse ? ', void of course' : ''}`];
-  if (reading.natal) notes.push(`Repository Sun in ${reading.natal.sunSign}, age ${reading.natal.age.toFixed(1)}`);
+  if (reading.natal) notes.push(`Repository Sun in ${reading.natal.sunSign}${reading.natal.ascendant ? `, ${reading.natal.ascendant.sign} rising` : `, age ${reading.natal.age.toFixed(1)}`}`);
   if (reading.release) notes.push(`Release ${clip(String(reading.release.version), 14)} is a ${reading.release.number}`);
   notes.forEach((note, i) => parts.push(text(hex, 722 + i * 21, note, { size: 14, fill: COLOR.muted, anchor: 'start' })));
 

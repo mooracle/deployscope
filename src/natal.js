@@ -1,6 +1,6 @@
 'use strict';
 
-const { sky } = require('./ephemeris');
+const { sky, ascendant, signOf } = require('./ephemeris');
 
 const YEAR_MS = 365.25 * 86400000;
 
@@ -21,9 +21,16 @@ const TRAITS = {
 };
 
 // The sky at the moment the repository was created, and its age at `time`.
-function chart(born, time) {
+// With a birthplace ({ latitude, longitude }) the chart also has an ascendant,
+// and with it houses; without one it has neither.
+function chart(born, time, birthplace) {
   const positions = sky(born);
-  return { born, positions, age: (time - born) / YEAR_MS, sunSign: positions.Sun.sign, trait: TRAITS[positions.Sun.sign] };
+  const natal = { born, positions, age: (time - born) / YEAR_MS, sunSign: positions.Sun.sign, trait: TRAITS[positions.Sun.sign], ascendant: null };
+  if (birthplace) {
+    const lon = ascendant(born, birthplace.latitude, birthplace.longitude);
+    natal.ascendant = { lon, sign: signOf(lon) };
+  }
+  return natal;
 }
 
 module.exports = { TRAITS, chart };

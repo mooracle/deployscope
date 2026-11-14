@@ -7,8 +7,8 @@ branding:
 
 inputs:
   seed:
-    description: What the cards and the hexagram are cast for. The same seed always gives the same spread.
-    default: ${{ github.sha }}
+    description: What the cards and the hexagram are cast for. The same seed always gives the same spread. Defaults to the commit, on pull requests the head commit.
+    default: ${{ github.event.pull_request.head.sha || github.sha }}
   time:
     description: ISO 8601 moment to read the sky for. Defaults to now.
     required: false
@@ -18,6 +18,9 @@ inputs:
   born:
     description: Birth moment of the repository for its natal chart (ISO 8601 or Unix seconds). Defaults to the repository creation time.
     default: ${{ github.event.repository.created_at }}
+  birthplace:
+    description: 'Where the repository was born, as "latitude, longitude" in degrees (north and east positive). Gives the natal chart an ascendant and houses. Empty leaves them out.'
+    default: ''
   version:
     description: Release version for numerology. Defaults to the tag name on tag builds, empty otherwise.
     default: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
@@ -54,6 +57,8 @@ outputs:
     description: true when the Moon is void of course.
   sun-sign:
     description: Sun sign of the repository, empty without a birth moment.
+  rising-sign:
+    description: Sign rising at the birth of the repository, empty without a birthplace.
   release-number:
     description: Numerological number of the release version, empty when not a tagged release.
   next-window:

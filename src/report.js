@@ -4,7 +4,7 @@ const { BODIES } = require('./ephemeris');
 const { BASE_SCORE } = require('./omens');
 
 const GLYPHS = {
-  Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆',
+  Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇',
 };
 
 const VERDICTS = {
@@ -50,7 +50,8 @@ function moonLine(reading) {
 }
 
 function natalLine(natal) {
-  return `Born ${minute(natal.born)}, ${natal.age.toFixed(1)} years ago. Sun in ${natal.sunSign}: ${natal.trait}.`;
+  const rising = natal.ascendant ? ` ${natal.ascendant.sign} rising.` : '';
+  return `Born ${minute(natal.born)}, ${natal.age.toFixed(1)} years ago. Sun in ${natal.sunSign}: ${natal.trait}.${rising}`;
 }
 
 // Top line first. Old (changing) lines are marked the traditional way: ○ yang, × yin.

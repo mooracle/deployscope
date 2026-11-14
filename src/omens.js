@@ -1,13 +1,13 @@
 'use strict';
 
-const { BODIES, angleDiff, sky, speed, moonElongation, moonVoidOfCourse } = require('./ephemeris');
+const { BODIES, SIGNS, angleDiff, sky, speed, moonElongation, moonVoidOfCourse } = require('./ephemeris');
 const tarot = require('./tarot');
 const iching = require('./iching');
 const numerology = require('./numerology');
 const { chart } = require('./natal');
 
-const BASE_SCORE = 75;
-const AUSPICIOUS_FROM = 85;
+const BASE_SCORE = 80;
+const AUSPICIOUS_FROM = 90;
 
 // What each body governs in a delivery pipeline.
 const DOMAINS = {
@@ -20,31 +20,67 @@ const DOMAINS = {
   Saturn: 'tech debt and compliance',
   Uranus: 'sudden outages and shiny rewrites',
   Neptune: 'caches, mocks and other illusions',
+  Pluto: 'deletions and migrations that cannot be undone',
 };
 
 const BENEFICS = ['Venus', 'Jupiter'];
-const MALEFICS = ['Mars', 'Saturn', 'Uranus'];
+const MALEFICS = ['Mars', 'Saturn', 'Uranus', 'Pluto'];
 // Aspects between two of these last for months and are nobody's deploy's fault.
-const SLOW = ['Jupiter', 'Saturn', 'Uranus', 'Neptune'];
+const SLOW = ['Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
 
+// The stronger the aspect, the wider the orb within which it is felt.
 const ASPECTS = [
-  { name: 'conjunct', angle: 0 },
-  { name: 'sextile', angle: 60, harmony: 1 },
-  { name: 'square', angle: 90, harmony: -1 },
-  { name: 'trine', angle: 120, harmony: 1 },
-  { name: 'opposite', angle: 180, harmony: -1 },
+  { name: 'conjunct', angle: 0, orb: 6 },
+  { name: 'sextile', angle: 60, orb: 3, harmony: 1 },
+  { name: 'square', angle: 90, orb: 5, harmony: -1 },
+  { name: 'trine', angle: 120, orb: 5, harmony: 1 },
+  { name: 'opposite', angle: 180, orb: 6, harmony: -1 },
 ];
-const ORB = 5;
+
+// A planet this close to the Sun is combust: burnt up and out of sight. One
+// within 17 minutes of arc is cazimi, in the heart of the Sun, and strongest of all.
+const COMBUSTIBLE = ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
+const COMBUST_ORB = 8;
+const CAZIMI_ORB = 17 / 60;
+
+// Essential dignities of the seven classical planets: the signs each rules, is
+// exalted in, is in detriment in (opposite its own) and falls in (opposite its exaltation).
+const DIGNITIES = {
+  Sun: { domicile: ['Leo'], exaltation: ['Aries'], detriment: ['Aquarius'], fall: ['Libra'] },
+  Moon: { domicile: ['Cancer'], exaltation: ['Taurus'], detriment: ['Capricorn'], fall: ['Scorpio'] },
+  Mercury: { domicile: ['Gemini', 'Virgo'], exaltation: ['Virgo'], detriment: ['Sagittarius', 'Pisces'], fall: ['Pisces'] },
+  Venus: { domicile: ['Taurus', 'Libra'], exaltation: ['Pisces'], detriment: ['Aries', 'Scorpio'], fall: ['Virgo'] },
+  Mars: { domicile: ['Aries', 'Scorpio'], exaltation: ['Capricorn'], detriment: ['Taurus', 'Libra'], fall: ['Cancer'] },
+  Jupiter: { domicile: ['Sagittarius', 'Pisces'], exaltation: ['Cancer'], detriment: ['Gemini', 'Virgo'], fall: ['Capricorn'] },
+  Saturn: { domicile: ['Capricorn', 'Aquarius'], exaltation: ['Libra'], detriment: ['Cancer', 'Leo'], fall: ['Aries'] },
+};
+// [score delta, how it is said, what it does], strongest first.
+const DIGNITY = {
+  domicile: [4, 'its own sign', 'at home and at full strength'],
+  exaltation: [3, 'the sign of its exaltation', 'an honoured guest, and it shows'],
+  detriment: [-4, 'the sign of its detriment', 'working against its own nature'],
+  fall: [-3, 'the sign of its fall', 'weak and unheard'],
+};
 
 // Transits: the moving sky against the sensitive points of the repository's
 // natal chart. The Moon is left out, it transits everything every month.
-const TRANSITING = ['Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'];
+const TRANSITING = ['Sun', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
 const NATAL_POINTS = {
   Sun: "the repository's core purpose",
   Moon: "its users' habits",
   Mercury: 'its APIs and integrations',
+  Ascendant: 'its public face, the README',
 };
+// A slow planet lingers for weeks, so it is only counted when nearly exact.
 const TRANSIT_ORB = 3;
+const SLOW_TRANSIT_ORB = 1.5;
+
+// The two houses of a natal chart that a deployment touches, counted in whole
+// signs from the ascendant.
+const HOUSES = {
+  6: 'the sixth house, of daily toil: the pipeline',
+  10: 'the tenth house, of public standing: production',
+};
 
 // [score delta, title, message] for retrograde motion. Mercury is handled separately.
 const RETROGRADES = {
@@ -54,6 +90,7 @@ const RETROGRADES = {
   Saturn: [-5, 'Old tech debt comes due.'],
   Uranus: [-2, 'Disruption is postponed, not cancelled.'],
   Neptune: [-2, 'Cache invalidation is even harder than usual.'],
+  Pluto: [-2, 'What was deleted is not as gone as you think.'],
 };
 
 // Planetary rulers of the weekdays, the classical way: [ruler, delta, message].
@@ -124,8 +161,11 @@ function aspectVerb(delta) {
   return delta < 0 ? 'at odds with' : 'entangled with';
 }
 
+// An aspect still closing (applying) is something about to happen and counts
+// in full; one already past exact (separating) is spent and counts half.
 function findAspects(positions) {
   const found = [];
+  const hour = 1 / 24;
   for (let i = 0; i < BODIES.length; i++) {
     for (let j = i + 1; j < BODIES.length; j++) {
       const [a, b] = [BODIES[i], BODIES[j]];
@@ -133,18 +173,57 @@ function findAspects(positions) {
       // The Sun-Moon aspects are the lunar phase, which is judged on its own.
       if (a === 'Sun' && b === 'Moon') continue;
       const separation = Math.abs(angleDiff(positions[a].lon, positions[b].lon));
-      const aspect = ASPECTS.find((x) => Math.abs(separation - x.angle) <= ORB);
+      const aspect = ASPECTS.find((x) => Math.abs(separation - x.angle) <= x.orb);
       if (!aspect) continue;
-      found.push({ a, b, name: aspect.name, delta: aspectDelta(aspect, a, b), orb: Math.abs(separation - aspect.angle) });
+      // A conjunction with the Sun is combustion, which is judged on its own.
+      if (a === 'Sun' && aspect.angle === 0 && COMBUSTIBLE.includes(b)) continue;
+      const orb = Math.abs(separation - aspect.angle);
+      const later = Math.abs(angleDiff(positions[a].lon + positions[a].speed * hour, positions[b].lon + positions[b].speed * hour));
+      const applying = Math.abs(later - aspect.angle) < orb;
+      const delta = aspectDelta(aspect, a, b);
+      found.push({ a, b, name: aspect.name, delta: applying ? delta : Math.trunc(delta / 2), orb, applying });
     }
   }
   return found;
 }
 
 function aspectOmens(aspects) {
-  return aspects.map(({ a, b, name, delta, orb }) => ({ code: 'OMEN020', severity: severityOf(delta), delta,
+  return aspects.map(({ a, b, name, delta, orb, applying }) => ({ code: 'OMEN020', severity: severityOf(delta), delta,
     title: `${a} ${name} ${b}`,
-    message: `${a} ${name} ${b} (orb ${orb.toFixed(1)}°): ${DOMAINS[a]} ${aspectVerb(delta)} ${DOMAINS[b]}.` }));
+    message: `${a} ${name} ${b} (orb ${orb.toFixed(1)}°, ${applying ? 'applying' : 'separating'}): ${DOMAINS[a]} ${aspectVerb(delta)} ${DOMAINS[b]}.` }));
+}
+
+function combustionOmens(positions) {
+  const omens = [];
+  for (const body of COMBUSTIBLE) {
+    const apart = Math.abs(angleDiff(positions[body].lon, positions.Sun.lon));
+    if (apart <= CAZIMI_ORB) {
+      omens.push({ code: 'OMEN022', severity: 'notice', delta: 6, title: `${body} is cazimi`,
+        message: `${body} (${DOMAINS[body]}) is in the heart of the Sun, within 17 minutes of arc: for these few hours it has the Sun's whole strength.` });
+    } else if (apart <= COMBUST_ORB) {
+      omens.push({ code: 'OMEN021', severity: 'warning', delta: -3, title: `${body} is combust`,
+        message: `${body} is ${apart.toFixed(1)}° from the Sun and burnt up in its rays: ${DOMAINS[body]} cannot be seen, and what cannot be seen cannot be monitored.` });
+    }
+  }
+  return omens;
+}
+
+function dignityOf(body, sign) {
+  const table = DIGNITIES[body];
+  return table ? Object.keys(DIGNITY).find((kind) => table[kind].includes(sign)) || null : null;
+}
+
+function dignityOmens(positions) {
+  const omens = [];
+  for (const body of Object.keys(DIGNITIES)) {
+    const kind = dignityOf(body, positions[body].sign);
+    if (!kind) continue;
+    const [delta, place, effect] = DIGNITY[kind];
+    const name = body === 'Sun' || body === 'Moon' ? `The ${body}` : body;
+    omens.push({ code: 'OMEN050', severity: severityOf(delta), delta, title: `${body} in ${kind}`,
+      message: `${name} (${DOMAINS[body]}) is in ${positions[body].sign}, ${place}: ${effect}.` });
+  }
+  return omens;
 }
 
 function moonOmen(elongation) {
@@ -208,19 +287,39 @@ function voidOmens(voidOfCourse) {
 
 function transitOmens(positions, natal) {
   const omens = [];
+  const points = { ...natal.positions, Ascendant: natal.ascendant };
   for (const transiting of TRANSITING) {
+    const reach = SLOW.includes(transiting) ? SLOW_TRANSIT_ORB : TRANSIT_ORB;
     for (const point of Object.keys(NATAL_POINTS)) {
-      if (transiting === point) continue;
-      const separation = Math.abs(angleDiff(positions[transiting].lon, natal.positions[point].lon));
-      const aspect = ASPECTS.find((x) => Math.abs(separation - x.angle) <= TRANSIT_ORB);
+      if (transiting === point || !points[point]) continue;
+      const separation = Math.abs(angleDiff(positions[transiting].lon, points[point].lon));
+      const aspect = ASPECTS.find((x) => Math.abs(separation - x.angle) <= reach);
       if (!aspect) continue;
       const delta = aspectDelta(aspect, transiting, transiting);
       const orb = Math.abs(separation - aspect.angle).toFixed(1);
+      const what = point === 'Ascendant' ? 'ascendant' : `natal ${point}`;
       omens.push({ code: 'OMEN040', severity: severityOf(delta), delta,
-        title: `Transit: ${transiting} ${aspect.name} natal ${point}`,
-        message: `Transiting ${transiting} ${aspect.name} the repository's natal ${point} in ${natal.positions[point].sign} `
+        title: `Transit: ${transiting} ${aspect.name} ${what}`,
+        message: `Transiting ${transiting} ${aspect.name} the repository's ${what} in ${points[point].sign} `
           + `(orb ${orb}°): ${DOMAINS[transiting]} ${aspectVerb(delta)} ${NATAL_POINTS[point]}.` });
     }
+  }
+  return omens;
+}
+
+// Houses need an ascendant, and so a birthplace. Benefics passing through the
+// houses of work and of standing help; Mars and Saturn there do not.
+function houseOmens(positions, natal) {
+  if (!natal.ascendant) return [];
+  const omens = [];
+  const rising = SIGNS.indexOf(natal.ascendant.sign);
+  for (const body of ['Venus', 'Jupiter', 'Mars', 'Saturn']) {
+    const house = ((SIGNS.indexOf(positions[body].sign) - rising + 12) % 12) + 1;
+    if (!HOUSES[house]) continue;
+    const delta = BENEFICS.includes(body) ? 3 : -3;
+    omens.push({ code: 'OMEN045', severity: severityOf(delta), delta, title: `${body} in the ${house === 6 ? 'sixth' : 'tenth'} house`,
+      message: `${body} passes through ${HOUSES[house]} (${positions[body].sign}, counted from the ascendant in ${natal.ascendant.sign}). `
+        + (delta > 0 ? 'It is well looked after.' : 'Expect it to be tested.') });
   }
   return omens;
 }
@@ -236,6 +335,11 @@ function returnOmens(positions, natal) {
   if (natal.age > 14 / 365 && apart('Moon') < 6) {
     omens.push({ code: 'OMEN042', severity: 'notice', delta: 4, title: 'Lunar return',
       message: `The Moon returns to its natal place in ${natal.positions.Moon.sign}. Monthly renewal: a good day to rotate secrets.` });
+  }
+  if (natal.age > 3 && apart('Jupiter') <= TRANSIT_ORB) {
+    omens.push({ code: 'OMEN044', severity: 'notice', delta: 8, title: 'Jupiter return',
+      message: `Jupiter returns to its natal place in ${natal.positions.Jupiter.sign}, as it does every twelve years. `
+        + 'A year of growth begins: a good time to raise the limits.' });
   }
   const saturn = Math.abs(angleDiff(positions.Saturn.lon, natal.positions.Saturn.lon));
   const phase = [[0, 'returns to', -15], [90, 'squares', -8], [180, 'opposes', -8]]
@@ -290,6 +394,10 @@ function releaseOmens(release) {
     omens.push({ code: 'OMEN613', severity: 'warning', delta: -8, title: 'Version contains 13',
       message: `${release.version} carries a 13. Buildings skip the thirteenth floor; consider skipping this version.` });
   }
+  if (release.karmic) {
+    omens.push({ code: 'OMEN640', severity: 'warning', delta: -6, title: `Karmic debt ${release.karmic.number}`,
+      message: `On their way to ${release.number} the digits of ${release.version} pass through ${release.karmic.number}, a karmic debt number. ${release.karmic.reading}` });
+  }
   return omens;
 }
 
@@ -299,14 +407,15 @@ function conclude(score, failBelow) {
 }
 
 // The whole divination. Pure: the same question always gets the same answer.
-// `born` (repository creation time) and `version` (release tag) are optional.
-function divine({ time, seed, timezone = 'UTC', failBelow = 25, born, version }) {
+// `born` (repository creation time), `birthplace` ({ latitude, longitude }) and
+// `version` (release tag) are optional.
+function divine({ time, seed, timezone = 'UTC', failBelow = 25, born, birthplace, version }) {
   const positions = sky(time);
   const cards = tarot.draw(seed);
   const hexagram = iching.cast(seed);
   const moon = moonOmen(moonElongation(time));
   const voidOfCourse = moonVoidOfCourse(time);
-  const natal = born === undefined ? null : chart(born, time);
+  const natal = born === undefined ? null : chart(born, time, birthplace);
   const release = numerology.read(version);
   const aspects = findAspects(positions);
   const omens = [
@@ -314,15 +423,17 @@ function divine({ time, seed, timezone = 'UTC', failBelow = 25, born, version })
     ...dayOmens(time, timezone, positions),
     moon.omen,
     ...voidOmens(voidOfCourse),
+    ...dignityOmens(positions),
+    ...combustionOmens(positions),
     ...aspectOmens(aspects),
-    ...(natal ? [...returnOmens(positions, natal), ...transitOmens(positions, natal)] : []),
+    ...(natal ? [...returnOmens(positions, natal), ...transitOmens(positions, natal), ...houseOmens(positions, natal)] : []),
     ...cardOmens(cards),
     ...hexagramOmens(hexagram),
     ...releaseOmens(release),
   ];
   const raw = omens.reduce((sum, omen) => sum + omen.delta, BASE_SCORE);
   const score = Math.max(0, Math.min(100, raw));
-  return { time, seed, timezone, failBelow, born, version, positions, aspects, moonPhase: moon.phase, voidOfCourse,
+  return { time, seed, timezone, failBelow, born, birthplace, version, positions, aspects, moonPhase: moon.phase, voidOfCourse,
     natal, cards, hexagram, release, omens, score, verdict: conclude(score, failBelow) };
 }
 

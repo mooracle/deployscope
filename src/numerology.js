@@ -17,11 +17,27 @@ const NUMBERS = {
   33: [10, 'A master number: the master teacher. Even the documentation is complete.'],
 };
 
-function reduce(n) {
+// Karmic debt numbers: a sum that passes through one of these on its way down
+// carries a debt from earlier releases.
+const KARMIC = {
+  13: 'Work that was shirked comes due: the shortcuts of earlier releases are all in this one.',
+  14: 'Freedom was abused: this release pays for the breaking changes that went before it.',
+  16: 'The number of the Tower: what was built on ego is brought down.',
+  19: 'Power was misused: this release must stand alone, and its dependencies will not help.',
+};
+
+// The sums a number passes through on its way down, itself first.
+function chain(n) {
+  const steps = [n];
   while (n > 9 && !(n in NUMBERS)) {
     n = String(n).split('').reduce((sum, d) => sum + Number(d), 0);
+    steps.push(n);
   }
-  return n;
+  return steps;
+}
+
+function reduce(n) {
+  return chain(n).pop();
 }
 
 // Reads a release tag such as v2.4.1. Returns null when it holds no digits.
@@ -33,7 +49,8 @@ function read(version) {
   const number = reduce(sum);
   const [delta, reading] = NUMBERS[number];
   const thirteen = String(version).match(/\d+/g).includes('13');
-  return { version: String(version), sum, number, delta, reading, thirteen };
+  const debt = chain(sum).find((step) => step in KARMIC);
+  return { version: String(version), sum, number, delta, reading, thirteen, karmic: debt ? { number: debt, reading: KARMIC[debt] } : null };
 }
 
-module.exports = { NUMBERS, reduce, read };
+module.exports = { NUMBERS, KARMIC, reduce, read };

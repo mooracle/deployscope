@@ -89,7 +89,7 @@ function body(reading, { window, assets, image, run, docs = DOCS, defied = false
 
   const facts = [`read for ${new Date(reading.time).toISOString().slice(0, 16).replace('T', ' ')} UTC`, `seed \`${String(reading.seed).slice(0, 12)}\``,
     `Moon: ${reading.moonPhase}${reading.voidOfCourse ? ', void of course' : ''}`];
-  if (reading.natal) facts.push(`repository Sun in ${reading.natal.sunSign}`);
+  if (reading.natal) facts.push(`repository Sun in ${reading.natal.sunSign}${reading.natal.ascendant ? `, ${reading.natal.ascendant.sign} rising` : ''}`);
   if (reading.release) facts.push(`release ${reading.release.version} is a ${reading.release.number}`);
   out.push(`<sub>${facts.join(' · ')}</sub>`, '', '</details>', '');
   return out.join('\n');

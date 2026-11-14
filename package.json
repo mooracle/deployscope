@@ -1,6 +1,6 @@
 {
   "name": "deployscope",
-  "version": "1.1.0",
+  "version": "1.6.0",
   "description": "GitHub Action that gates deployments on planetary positions and a tarot spread",
   "license": "MIT",
   "private": true,

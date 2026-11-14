@@ -31,7 +31,7 @@ function assertWellFormed(document) {
 
 test('the committed assets are what the drawing code produces', () => {
   const files = assets();
-  assert.equal(Object.keys(files).length, 1 + 22 * 2 + 64);
+  assert.equal(Object.keys(files).length, 1 + 78 * 2 + 64);
   for (const [name, content] of Object.entries(files)) {
     assertWellFormed(content);
     assert.equal(fs.readFileSync(path.join(__dirname, '..', 'assets', name), 'utf8'), content, `${name} is stale, run npm run assets`);

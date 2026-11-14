@@ -33,9 +33,11 @@ const ELEMENTS = {
     -0.00196176, -0.00004397, -0.00242939, 428.48202785, 0.40805281, 0.04240589],
   Neptune: [30.06992276, 0.00859048, 1.77004347, -55.12002969, 44.96476227, 131.78422574,
     0.00026291, 0.00005105, 0.00035372, 218.45945325, -0.32241464, -0.00508664],
+  Pluto: [39.48211675, 0.2488273, 17.14001206, 238.92903833, 224.06891629, 110.30393684,
+    -0.00031596, 0.0000517, 0.00004818, 145.20780515, -0.04062942, -0.01183482],
 };
 
-const BODIES = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'];
+const BODIES = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
 
 const SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
   'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
@@ -125,6 +127,16 @@ function sky(time) {
   return result;
 }
 
+// The ascendant: the degree of the zodiac rising on the eastern horizon at
+// `time`, seen from `latitude` and `longitude` (degrees, north and east positive).
+function ascendant(time, latitude, longitude) {
+  const days = (time - J2000) / DAY_MS;
+  const sidereal = norm360(280.46061837 + 360.98564736629 * days + longitude) * DEG;
+  const obliquity = (23.4393 - 0.013 * centuries(time)) * DEG;
+  return norm360(Math.atan2(Math.cos(sidereal),
+    -(Math.sin(sidereal) * Math.cos(obliquity) + Math.tan(latitude * DEG) * Math.sin(obliquity))) / DEG);
+}
+
 // Sun-Moon elongation in degrees: 0 new, 90 first quarter, 180 full, 270 last quarter.
 function moonElongation(time) {
   return norm360(longitude('Moon', time) - longitude('Sun', time));
@@ -159,5 +171,5 @@ function moonVoidOfCourse(time) {
 }
 
 module.exports = {
-  BODIES, SIGNS, norm360, angleDiff, longitude, speed, signOf, sky, moonElongation, moonVoidOfCourse,
+  BODIES, SIGNS, norm360, angleDiff, longitude, speed, signOf, sky, ascendant, moonElongation, moonVoidOfCourse,
 };

@@ -24,6 +24,16 @@ function parseBorn(value, time) {
   return born;
 }
 
+// "59.33, 18.07": latitude and longitude in degrees, north and east positive.
+function parseBirthplace(value) {
+  if (value === undefined) return undefined;
+  const [latitude, longitude, ...rest] = value.split(',').map((part) => Number(part.trim()));
+  if (rest.length || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 66 || Math.abs(longitude) > 180) {
+    throw new Error(`Input "birthplace" must be "latitude, longitude" in degrees, between the polar circles, got: ${value}`);
+  }
+  return { latitude, longitude };
+}
+
 function readInputs() {
   const timeInput = input('time', '');
   const time = timeInput ? Date.parse(timeInput) : Date.now();
@@ -44,9 +54,10 @@ function readInputs() {
   // Without a commit to read, the cards are drawn for the calendar day.
   const seed = input('seed', process.env.GITHUB_SHA || new Date(time).toISOString().slice(0, 10));
   const born = parseBorn(input('born'), time);
+  const birthplace = born === undefined ? undefined : parseBirthplace(input('birthplace'));
   const version = input('version');
   const defyFate = input('defy-fate', 'false').toLowerCase() === 'true';
-  return { time, seed, timezone, failBelow, born, version, defyFate };
+  return { time, seed, timezone, failBelow, born, birthplace, version, defyFate };
 }
 
 function setOutputs(outputs) {
@@ -129,6 +140,7 @@ async function run() {
     'moon-phase': reading.moonPhase,
     'moon-void': reading.voidOfCourse !== null,
     'sun-sign': reading.natal ? reading.natal.sunSign : '',
+    'rising-sign': reading.natal && reading.natal.ascendant ? reading.natal.ascendant.sign : '',
     'release-number': reading.release ? reading.release.number : '',
     'next-window': window ? new Date(window.time).toISOString() : '',
   });

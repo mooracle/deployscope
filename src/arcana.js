@@ -1,6 +1,7 @@
 'use strict';
 
-// The pictures on the cards: 22 neon line drawings, one per major arcanum.
+// The pictures on the cards: 22 neon line drawings, one per major arcanum,
+// and the pip cards of the minor arcana (at the end of the file).
 // Each shows what the card means in software delivery, not the medieval scene:
 // the Fool jumps the gap where staging should be, Justice weighs code against
 // tests, the Moon is a build that is green in CI and red in its reflection.
@@ -102,9 +103,9 @@ const CARDS = [
       + solid('M-70 92V40H-30V92', CYAN) + label(-50, 58, 'BUILD', CYAN, 7) + check(-50, 72, 6)
       + solid('M30 92V40H70V92', PINK) + label(50, 58, 'PROD', PINK, 7) + (r ? cross(50, 74, 6) : '')
       + dim(tube(box(-20, 62, 40, 18), WHITE, 1.2, ' stroke-dasharray="3 3"') + label(0, 74, 'STAGING', WHITE, 6) + tube('M-22 82L22 60', RED, 1.5), 0.75)
-      + tube(r ? 'M-34 36Q-8 -34 2 30' : 'M-34 36Q0 -44 34 36', r ? RED : YELLOW, 1.5, ' stroke-dasharray="2 5"')
-      + turn(r ? 4 : -2, r ? 44 : -4, r ? 155 : 24, solid('M-7 -14H7L9 12H-9Z', CYAN) + head(0, -22, CYAN, 5.5) + tube('M-6 12L-18 26M6 12L16 20L22 30M7 -8L22 -14M-7 -8L-18 0', CYAN))
-      + (r ? turn(-22, 4, 25, solid(box(-5, -5, 11, 11), PINK, 1.5)) : tube('M-14 -14L-34 -30', PINK, 1.5) + solid(box(-44, -40, 11, 11), PINK, 1.5))
+      + tube(r ? 'M-34 36Q-6 -40 0 -14' : 'M-34 36Q0 -44 34 36', r ? RED : YELLOW, 1.5, ' stroke-dasharray="2 5"')
+      + turn(r ? 0 : -2, r ? 14 : -4, r ? 180 : 24, solid('M-7 -14H7L9 12H-9Z', CYAN) + head(0, -22, CYAN, 5.5) + tube('M-6 12L-18 26M6 12L16 20L22 30M7 -8L22 -14M-7 -8L-18 0', CYAN))
+      + (r ? turn(-30, -20, 25, solid(box(-5, -5, 11, 11), PINK, 1.5)) : tube('M-14 -14L-34 -30', PINK, 1.5) + solid(box(-44, -40, 11, 11), PINK, 1.5))
       + tube('M34 2H54M38 2V-2M50 2V-2M32 -2H42M46 -2H56', PINK, 1.5) + dot(44, 4, 1.8, PINK),
   },
   { /* 1 The Magician: every tool at hand, every stage obeying */
@@ -129,7 +130,7 @@ const CARDS = [
       + dim([[-76, 60], [-68, 44], [-60, 66], [-52, 36], [-44, 58], [-36, 50], [-28, 70], [4, 46], [12, 62], [20, 38], [28, 56], [36, 66], [44, 42], [52, 54]]
         .map(([y, w]) => tube(`M-38 ${y}h${w}`, CYAN, 1.5)).join(''), 0.55)
       + (r ? solid(box(-40, -20, 80, 14), RED, 1.5) + label(-37, -10, 'API_KEY=sk-4f', RED, 8, 'start') : tube('M-38 -12H-20', RED, 2.5) + tube('M-14 -12H30', YELLOW, 2.5))
-      + ring(10, -12, 17, WHITE, 2.5) + tube('M22 0L40 20', WHITE, 4)
+      + (r ? ring(18, 22, 15, WHITE, 2.5) + tube('M29 33L42 48', WHITE, 4) + tube('M10 8L4 -3', WHITE, 1.2) : ring(10, -12, 17, WHITE, 2.5) + tube('M22 0L40 20', WHITE, 4))
       + tube('M-16 86A16 16 0 0 0 16 86A20 20 0 0 1 -16 86Z', YELLOW)
       + tube('M-70 66H70', VIOLET, 1.5),
   },
@@ -364,5 +365,54 @@ const CARDS = [
       + check(-58, -80, 6, CYAN) + check(58, -80, 6, CYAN) + check(-58, 80, 6, CYAN) + (r ? cross(58, 80, 6) : check(58, 80, 6, CYAN)),
   },
 ];
+
+// The minor arcana are pip cards, as in the old decks: as many suit emblems as
+// the card's number, and an insignia of rank over one large emblem for the
+// courts. The emblems: a Wand is a branch with a commit on it, a Cup is a mug,
+// a Sword is a sword, a Pentacle is a coin. Reversed, every emblem is turned
+// over and goes red: the cup spills, the sword points down.
+const EMBLEMS = [
+  { colors: [ORANGE, YELLOW], draw: (c, c2) => tube('M0 12V-9', c, 2) + ring(0, -12, 3, c, 2, BACK) + tube('M0 5Q8 3 8 -3', c, 1.5) + ring(8, -6, 2.5, c2, 1.5, BACK) },
+  { colors: [CYAN, PINK], draw: (c, c2) => solid('M-7 -6H7V3Q7 10 0 10Q-7 10 -7 3Z', c, 2) + tube('M7 -3Q13 -3 13 1.5Q13 6 6.5 5.5', c, 1.5) + tube('M-3 -9q2 -2 0 -4M2 -9q2 -2 0 -4', c2, 1.2) },
+  { colors: [VIOLET, WHITE], draw: (c, c2) => solid('M0 -13L3 -9V4H-3V-9Z', c2, 1.5) + tube('M-7 4H7', c, 2) + tube('M0 4V10', c, 2) + dot(0, 12, 1.8, c) },
+  { colors: [GREEN, YELLOW], draw: (c, c2) => ring(0, 0, 10, c, 2, BACK) + tube(starPath(0, 0, 7, 5, 0.4), c2, 1.2) },
+];
+// Where the emblems stand for Ace to Ten: [scale, ...[x, y]].
+const SIX = [[-30, -54], [30, -54], [-30, 0], [30, 0], [-30, 54], [30, 54]];
+const EIGHT = [[-30, -63], [30, -63], [-30, -21], [30, -21], [-30, 21], [30, 21], [-30, 63], [30, 63]];
+const PIPS = [
+  [3.6, [0, 0]],
+  [2, [0, -44], [0, 44]],
+  [1.7, [0, -58], [0, 0], [0, 58]],
+  [1.7, [-30, -44], [30, -44], [-30, 44], [30, 44]],
+  [1.6, [-30, -50], [30, -50], [0, 0], [-30, 50], [30, 50]],
+  [1.5, ...SIX],
+  [1.4, ...SIX, [0, -27]],
+  [1.4, ...SIX, [0, -27], [0, 27]],
+  [1.2, ...EIGHT, [0, 0]],
+  [1.2, ...EIGHT, [0, -42], [0, 42]],
+];
+// Page, Knight, Queen, King: a pennant, a pair of chevrons, a crown, a crown with a cross.
+const INSIGNIA = [
+  (c) => tube('M-10 12V-12', c) + solid('M-10 -12L12 -6L-10 0Z', c),
+  (c) => tube('M-13 10L0 -4L13 10M-13 -2L0 -16L13 -2', c, 2.5),
+  (c) => solid('M-14 8V-6L-7 2L0 -10L7 2L14 -6V8Z', c) + dot(0, -14, 2, c),
+  (c) => solid('M-18 8V-6L-10 2L-5 -8L0 2L5 -8L10 2L18 -6V8Z', c) + tube('M0 -20V-11M-4 -16H4', c),
+];
+
+EMBLEMS.forEach(({ colors, draw }) => {
+  for (let rank = 0; rank < 14; rank++) {
+    CARDS.push({ colors, scene: (r) => {
+      const [c, c2] = r ? [RED, RED] : colors;
+      const emblem = (x, y, scale) => turn(x, y, r ? 180 : 0, draw(c, c2), scale);
+      if (rank < 10) {
+        const [scale, ...places] = PIPS[rank];
+        return places.map(([x, y]) => emblem(x, y, scale)).join('');
+      }
+      return turn(0, -62, r ? 150 : 0, INSIGNIA[rank - 10](r ? RED : colors[1]), 1.3) + emblem(0, 26, 3.2)
+        + dim(tube('M-50 -30H50', colors[0], 1), 0.5);
+    } });
+  }
+});
 
 module.exports = { CARDS, BACK };
